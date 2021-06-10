@@ -11,8 +11,8 @@ IS_CLIENT=0
 DOCKER_IS_LOCAL_CLIENT=0
 DOCKER_NO_GPU=0
 
-FOMM_CONFIG=fomm/config/vox-adv-256.yaml
-FOMM_CKPT=vox-adv-cpk.pth.tar
+FOMM_CONFIG=./articulated/config/vox256.yaml
+FOMM_CKPT=vox256.pth
 
 ARGS=""
 DOCKER_ARGS=""
@@ -69,24 +69,24 @@ eval set -- "$ARGS"
 
 
 if [[ $USE_DOCKER == 0 ]]; then
-    
+
     if [[ $KILL_PS == 1 ]]; then
         kill -9 $(ps aux | grep 'afy/cam_fomm.py' | awk '{print $2}') 2> /dev/null
     fi
-    
+
     source scripts/settings.sh
-    
+
     if [[ $ENABLE_VCAM == 1 ]]; then
         bash scripts/create_virtual_camera.sh
     fi
-    
+
     if [[ $ENABLE_CONDA == 1 ]]; then
         source $(conda info --base)/etc/profile.d/conda.sh
         conda activate $CONDA_ENV_NAME
     fi
-    
+
     export PYTHONPATH=$PYTHONPATH:$(pwd):$(pwd)/fomm
-    
+
     python afy/cam_fomm.py \
         --config $FOMM_CONFIG \
         --checkpoint $FOMM_CKPT \
@@ -101,7 +101,7 @@ else
     if [[ $ENABLE_VCAM == 1 ]]; then
         bash scripts/create_virtual_camera.sh
     fi
-    
+
     if [[ $DOCKER_NO_GPU == 0 ]]; then
         if nvidia-container-runtime -v &> /dev/null; then
             DOCKER_ARGS="$DOCKER_ARGS --runtime=nvidia"

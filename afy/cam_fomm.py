@@ -1,12 +1,12 @@
-import os, sys
 from sys import platform as _platform
 import glob
-import yaml
-import time
-import requests
+import os
+import sys
 
-import numpy as np
 import cv2
+import numpy as np
+import requests
+import yaml
 
 from afy.videocaptureasync import VideoCaptureAsync
 from afy.arguments import opt
@@ -23,37 +23,34 @@ if _platform == 'darwin':
     if not opt.is_client:
         info('\nOnly remote GPU mode is supported for Mac (use --is-client and --connect options to connect to the server)')
         info('Standalone version will be available lately!\n')
-        exit()
+        sys.exit(1)
 
 
-def is_new_frame_better(source, driving, predictor):
-    global avatar_kp
-    global display_string
-    
+def is_new_frame_better(driving, predictor):
+    global avatar_kp, display_string
+
     if avatar_kp is None:
         display_string = "No face detected in avatar."
         return False
-    
+
     if predictor.get_start_frame() is None:
         display_string = "No frame to compare to."
         return True
-    
+
     driving_smaller = resize(driving, (128, 128))[..., :3]
     new_kp = predictor.get_frame_kp(driving)
-    
-    if new_kp is not None:
-        new_norm = (np.abs(avatar_kp - new_kp) ** 2).sum()
-        old_norm = (np.abs(avatar_kp - predictor.get_start_frame_kp()) ** 2).sum()
-        
-        out_string = "{0} : {1}".format(int(new_norm * 100), int(old_norm * 100))
-        display_string = out_string
-        log(out_string)
-        
-        return new_norm < old_norm
-    else:
+
+    if new_kp is None:
         display_string = "No face found!"
         return False
+    new_norm = (np.abs(avatar_kp - new_kp) ** 2).sum()
+    old_norm = (np.abs(avatar_kp - predictor.get_start_frame_kp()) ** 2).sum()
 
+    out_string = "{0} : {1}".format(int(new_norm * 100), int(old_norm * 100))
+    display_string = out_string
+    log(out_string)
+
+    return new_norm < old_norm
 
 def load_stylegan_avatar():
     url = "https://thispersondoesnotexist.com/image"
@@ -72,7 +69,7 @@ def load_images(IMG_SIZE = 256):
     filenames = []
     images_list = sorted(glob.glob(f'{opt.avatars}/*'))
     for i, f in enumerate(images_list):
-        if f.endswith('.jpg') or f.endswith('.jpeg') or f.endswith('.png'):
+        if f.endswith(('.jpg', '.jpeg', '.png')):
             img = cv2.imread(f)
             if img is None:
                 log("Failed to open image: {}".format(f))
@@ -80,8 +77,8 @@ def load_images(IMG_SIZE = 256):
 
             if img.ndim == 2:
                 img = np.tile(img[..., None], [1, 1, 3])
-            img = img[..., :3][..., ::-1]
-            img = resize(img, (IMG_SIZE, IMG_SIZE))
+            # img = img[..., :3][..., ::-1]
+            # img = resize(img, (IMG_SIZE, IMG_SIZE))
             avatars.append(img)
             filenames.append(f)
     return avatars, filenames
@@ -92,7 +89,6 @@ def change_avatar(predictor, new_avatar):
     kp_source = None
     avatar = new_avatar
     predictor.set_source_image(avatar)
-
 
 def draw_rect(img, rw=0.6, rh=0.8, color=(255, 0, 0), thickness=2):
     h, w = img.shape[:2]
@@ -221,7 +217,7 @@ if __name__ == "__main__":
     cam_id = select_camera(config)
 
     if cam_id is None:
-        exit(1)
+        sys.exit(1)
 
     cap = VideoCaptureAsync(cam_id)
     cap.start()
@@ -239,23 +235,19 @@ if __name__ == "__main__":
                 import pyfakewebcam
             except ImportError:
                 log("pyfakewebcam is not installed.")
-                exit(1)
+                sys.exit(1)
 
             stream = pyfakewebcam.FakeWebcam(f'/dev/video{opt.virt_cam}', *stream_img_size)
         else:
             enable_vcam = False
-            # log("Virtual camera is supported only on Linux.")
-        
-        # if not enable_vcam:
-            # log("Virtual camera streaming will be disabled.")
 
-    cur_ava = 0    
+    cur_ava = 0
     avatar = None
     change_avatar(predictor, avatars[cur_ava])
     passthrough = False
 
     cv2.namedWindow('cam', cv2.WINDOW_GUI_NORMAL)
-    cv2.moveWindow('cam', 500, 250)
+    cv2.moveWindow('cam', 100, 250)
 
     frame_proportion = 0.9
     frame_offset_x = 0
@@ -302,7 +294,7 @@ if __name__ == "__main__":
             frame = resize(frame, (IMG_SIZE, IMG_SIZE))[..., :3]
 
             if find_keyframe:
-                if is_new_frame_better(avatar, frame, predictor):
+                if is_new_frame_better(frame, predictor):
                     log("Taking new frame!")
                     green_overlay = True
                     predictor.reset_frames()
@@ -321,7 +313,7 @@ if __name__ == "__main__":
                 out = None
 
             tt.tic()
-            
+
             key = cv2.waitKey(1)
 
             if cv2.getWindowProperty('cam', cv2.WND_PROP_VISIBLE) < 1.0:
@@ -375,7 +367,7 @@ if __name__ == "__main__":
                 if not is_calibrated:
                     cv2.namedWindow('avatarify', cv2.WINDOW_GUI_NORMAL)
                     cv2.moveWindow('avatarify', 600, 250)
-                
+
                 is_calibrated = True
                 show_landmarks = False
             elif key == ord('z'):
@@ -429,10 +421,10 @@ if __name__ == "__main__":
                 draw_face_landmarks(preview_frame, avatar_kp, (200, 20, 10))
                 frame_kp = predictor.get_frame_kp(frame)
                 draw_face_landmarks(preview_frame, frame_kp)
-            
+
             if preview_flip:
                 preview_frame = cv2.flip(preview_frame, 1)
-                
+
             if green_overlay:
                 green_alpha = 0.8
                 overlay = preview_frame.copy()
@@ -440,7 +432,7 @@ if __name__ == "__main__":
                 preview_frame = cv2.addWeighted( preview_frame, green_alpha, overlay, 1.0 - green_alpha, 0.0)
 
             timing['postproc'] = tt.toc()
-                
+
             if find_keyframe:
                 preview_frame = cv2.putText(preview_frame, display_string, (10, 220), 0, 0.5 * IMG_SIZE / 256, (255, 255, 255), 1)
 
