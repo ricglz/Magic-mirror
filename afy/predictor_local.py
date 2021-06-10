@@ -1,14 +1,15 @@
 from scipy.spatial import ConvexHull
-import torch
-import yaml
-from modules.keypoint_detector import KPDetector
-from modules.generator_optim import OcclusionAwareGenerator
-from sync_batchnorm import DataParallelWithCallback
 import numpy as np
-import face_alignment
 
+import torch
+from torch.tensor import Tensor
 
-def normalize_kp(kp_source, kp_driving, kp_driving_initial, adapt_movement_scale=False,
+from articulated.demo import load_checkpoints
+from articulated.animate import get_animation_region_params
+from articulated.modules.generator_optim import OcclusionAwareGenerator
+from articulated.modules.keypoint_detector import KPDetector
+
+def normalize_kp(kp_source, kp_driving: dict, kp_driving_initial, adapt_movement_scale=False,
                  use_relative_movement=False, use_relative_jacobian=False):
     if adapt_movement_scale:
         source_area = ConvexHull(kp_source['value'][0].data.cpu().numpy()).volume
@@ -30,80 +31,53 @@ def normalize_kp(kp_source, kp_driving, kp_driving_initial, adapt_movement_scale
 
     return kp_new
 
-
-def to_tensor(a):
-    return torch.tensor(a[np.newaxis].astype(np.float32)).permute(0, 3, 1, 2) / 255
-
+def to_tensor(a: np.ndarray) -> Tensor:
+    return Tensor(a[np.newaxis].astype(np.float32)).permute(0, 3, 1, 2) / 255
 
 class PredictorLocal:
-    def __init__(self, config_path, checkpoint_path, relative=False, adapt_movement_scale=False, device=None, enc_downscale=1):
+    def __init__(
+        self,
+        config_path: str,
+        checkpoint_path: str,
+        relative=False,
+        adapt_movement_scale=False,
+        device=None,
+        enc_downscale=1
+    ):
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
-        self.relative = relative
-        self.adapt_movement_scale = adapt_movement_scale
-        self.start_frame = None
-        self.start_frame_kp = None
-        self.kp_driving_initial = None
-        self.config_path = config_path
-        self.checkpoint_path = checkpoint_path
-        self.generator, self.kp_detector = self.load_checkpoints()
-        self.fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, flip_input=True, device=self.device)
+        networks = load_checkpoints(
+                config_path, checkpoint_path, device == 'cpu'
+        )
+        self.generator, self.region_predictor, self.avd_network = networks
         self.source = None
-        self.kp_source = None
-        self.enc_downscale = enc_downscale
-
-    def load_checkpoints(self):
-        with open(self.config_path) as f:
-            config = yaml.load(f, Loader=yaml.FullLoader)
-    
-        generator = OcclusionAwareGenerator(**config['model_params']['generator_params'],
-                                            **config['model_params']['common_params'])
-        generator.to(self.device)
-    
-        kp_detector = KPDetector(**config['model_params']['kp_detector_params'],
-                                 **config['model_params']['common_params'])
-        kp_detector.to(self.device)
-    
-        checkpoint = torch.load(self.checkpoint_path, map_location=self.device)
-        generator.load_state_dict(checkpoint['generator'])
-        kp_detector.load_state_dict(checkpoint['kp_detector'])
-    
-        generator.eval()
-        kp_detector.eval()
-        
-        return generator, kp_detector
+        self.source_region_params = None
 
     def reset_frames(self):
-        self.kp_driving_initial = None
+        pass
 
     def set_source_image(self, source_image):
-        self.source = to_tensor(source_image).to(self.device)
-        self.kp_source = self.kp_detector(self.source)
-
-        if self.enc_downscale > 1:
-            h, w = int(self.source.shape[2] / self.enc_downscale), int(self.source.shape[3] / self.enc_downscale)
-            source_enc = torch.nn.functional.interpolate(self.source, size=(h, w), mode='bilinear')
-        else:
-            source_enc = self.source
-
-        self.generator.encode_source(source_enc)
+        self.source = to_tensor(np.array([source_image])).to(self.device)
+        self.source_region_params = self.region_predictor(self.source)
 
     def predict(self, driving_frame):
-        assert self.kp_source is not None, "call set_source_image()"
-        
+        assert self.source_region_params is not None, "call set_source_image()"
+
         with torch.no_grad():
             driving = to_tensor(driving_frame).to(self.device)
+            driving_region_params = self.region_predictor(driving)
 
-            if self.kp_driving_initial is None:
-                self.kp_driving_initial = self.kp_detector(driving)
-                self.start_frame = driving_frame.copy()
-                self.start_frame_kp = self.get_frame_kp(driving_frame)
-
-            kp_driving = self.kp_detector(driving)
-            kp_norm = normalize_kp(kp_source=self.kp_source, kp_driving=kp_driving,
-                                kp_driving_initial=self.kp_driving_initial, use_relative_movement=self.relative,
-                                use_relative_jacobian=self.relative, adapt_movement_scale=self.adapt_movement_scale)
-
-            out = self.generator(self.source, kp_source=self.kp_source, kp_driving=kp_norm)
+            new_region_params = get_animation_region_params(
+                self.source_region_params,
+                driving_region_params,
+                driving_region_params,
+                avd_network=self.avd_network,
+                mode='avd'
+            )
+            out = self.generator(
+                self.source,
+                source_region_params=self.source_region_params,
+                driving_region_params=new_region_params
+            )
 
             out = np.transpose(out['prediction'].data.cpu().numpy(), [0, 2, 3, 1])[0]
             out = (np.clip(out, 0, 1) * 255).astype(np.uint8)
@@ -111,24 +85,14 @@ class PredictorLocal:
             return out
 
     def get_frame_kp(self, image):
-        kp_landmarks = self.fa.get_landmarks(image)
-        if kp_landmarks:
-            kp_image = kp_landmarks[0]
-            kp_image = self.normalize_alignment_kp(kp_image)
-            return kp_image
-        else:
-            return None
+        pass
 
     @staticmethod
     def normalize_alignment_kp(kp):
-        kp = kp - kp.mean(axis=0, keepdims=True)
-        area = ConvexHull(kp[:, :2]).volume
-        area = np.sqrt(area)
-        kp[:, :2] = kp[:, :2] / area
-        return kp
-    
+        pass
+
     def get_start_frame(self):
-        return self.start_frame
+        pass
 
     def get_start_frame_kp(self):
-        return self.start_frame_kp
+        pass
