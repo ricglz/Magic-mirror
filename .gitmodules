@@ -1,0 +1,3 @@
+[submodule "articulated"]
+	path = articulated
+	url = https://github.com/snap-research/articulated-animation/
