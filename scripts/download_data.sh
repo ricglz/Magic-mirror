@@ -12,3 +12,5 @@ else
   sum=`md5sum ${filename}`
 fi
 echo "Found checksum:    $sum"
+
+curl -L -O https://github.com/snap-research/articulated-animation/raw/main/checkpoints/vox256.pth
