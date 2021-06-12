@@ -1,8 +1,11 @@
+from facenet_pytorch import MTCNN
+from PIL import Image
 from scipy.spatial import ConvexHull
 import numpy as np
 
 import torch
 from torch.tensor import Tensor
+from torchvision.transforms.functional import to_pil_image
 
 from articulated.demo import load_checkpoints
 from articulated.animate import get_animation_region_params
@@ -11,6 +14,24 @@ from articulated.modules.keypoint_detector import KPDetector
 
 def to_tensor(a: np.ndarray) -> Tensor:
     return Tensor(a[np.newaxis].astype(np.float32)).permute(0, 3, 1, 2) / 255
+
+def to_numpy(img: Image.Image):
+    return np.array(img.convert('RGB')) / 255.0
+
+def extract_face(image: Image.Image, box) -> Image.Image:
+    margin = 25
+    box[0] -= margin
+    box[1] -= margin
+    box[2] += margin
+    box[3] += margin
+    return image.crop(box).resize((256, 256))
+
+def get_face(image_numpy: np.ndarray, mtcnn: MTCNN):
+    with torch.no_grad():
+        image = to_pil_image(to_tensor(image_numpy)).resize((512, 512))
+        box = mtcnn.detect(image)[0][0]
+        face = to_tensor(to_numpy(extract_face(image, box)))
+        return face, box
 
 class PredictorLocal:
     def __init__(
@@ -29,19 +50,22 @@ class PredictorLocal:
         self.generator, self.region_predictor, self.avd_network = networks
         self.driving = None
         self.driving_region_params = None
+        self.mtcnn = MTCNN()
 
     def reset_frames(self):
         pass
 
     def set_source_image(self, source_image):
-        self.driving = to_tensor(np.array([source_image])).to(self.device)
+        self.driving = get_face(source_image, self.mtcnn)[0].to(self.device)
         self.driving_region_params = self.region_predictor(self.driving)
 
     def predict(self, driving_frame):
         assert self.driving_region_params is not None, "call set_source_image()"
 
+        source, source_box = get_face(driving_frame, self.mtcnn)
+        source = source.to(self.device)
+
         with torch.no_grad():
-            source = to_tensor(driving_frame).to(self.device)
             source_region_params = self.region_predictor(source)
 
             new_region_params = get_animation_region_params(

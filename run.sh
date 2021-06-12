@@ -85,8 +85,6 @@ if [[ $USE_DOCKER == 0 ]]; then
         conda activate $CONDA_ENV_NAME
     fi
 
-    export PYTHONPATH=$PYTHONPATH:$(pwd):$(pwd)/fomm
-
     python afy/cam_fomm.py \
         --config $FOMM_CONFIG \
         --checkpoint $FOMM_CKPT \
