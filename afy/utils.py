@@ -61,7 +61,6 @@ class Once():
             who(what)
             Once._id[what] = now
 
-
 class TicToc:
     def __init__(self):
         self.t = None
@@ -70,33 +69,33 @@ class TicToc:
     def tic(self):
         self.t = time.time()
 
-    def toc(self, total=False):
+    def toc(self, total=False, seconds=False):
         if total:
-            return (time.time() - self.t_init) * 1000
-
-        assert self.t, 'You forgot to call tic()'
-        return (time.time() - self.t) * 1000
+            toc = (time.time() - self.t_init)
+        else:
+            assert self.t, 'You forgot to call tic()'
+            toc = (time.time() - self.t)
+        return toc if seconds else toc * 1000
 
     def tocp(self, str):
         t = self.toc()
         log(f"{str} took {t:.4f}ms")
         return t
 
-
 class AccumDict:
     def __init__(self, num_f=3):
         self.d = defaultdict(list)
         self.num_f = num_f
-        
+
     def add(self, k, v):
         self.d[k] += [v]
-        
+
     def __dict__(self):
         return self.d
 
     def __getitem__(self, key):
         return self.d[key]
-    
+
     def __str__(self):
         s = ''
         for k in self.d:
@@ -109,7 +108,7 @@ class AccumDict:
             avg_str = format_str.format(avg)
             s += f'{k} {cur_str} ({avg_str})\t\t'
         return s
-    
+
     def __repr__(self):
         return self.__str__()
 
