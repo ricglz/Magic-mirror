@@ -183,7 +183,7 @@ if __name__ == "__main__":
     global display_string
     display_string = ""
 
-    IMG_SIZE = 256
+    IMG_SIZE = 512
 
     log('Loading Predictor')
     predictor_args = {
@@ -288,8 +288,6 @@ if __name__ == "__main__":
 
             frame = frame[..., ::-1]
             frame_orig = frame.copy()
-
-            frame, (frame_offset_x, frame_offset_y) = crop(frame, p=frame_proportion, offset_x=frame_offset_x, offset_y=frame_offset_y)
 
             frame = resize(frame, (IMG_SIZE, IMG_SIZE))[..., :3]
 
