@@ -12,6 +12,8 @@ from articulated.animate import get_animation_region_params
 from articulated.modules.generator_optim import OcclusionAwareGenerator
 from articulated.modules.keypoint_detector import KPDetector
 
+from afy.magic_mirror import MagicMirror
+
 def to_tensor(a: np.ndarray) -> Tensor:
     return Tensor(a[np.newaxis].astype(np.float32)).permute(0, 3, 1, 2) / 255
 
@@ -51,20 +53,17 @@ class PredictorLocal:
         self.driving = None
         self.driving_region_params = None
         self.mtcnn = MTCNN()
+        self.magic_mirror = MagicMirror()
 
     def reset_frames(self):
         pass
 
     def set_source_image(self, source_image):
+        self.magic_mirror.reset_tic()
         self.driving = get_face(source_image, self.mtcnn)[0].to(self.device)
         self.driving_region_params = self.region_predictor(self.driving)
 
-    def predict(self, driving_frame):
-        assert self.driving_region_params is not None, "call set_source_image()"
-
-        source, source_box = get_face(driving_frame, self.mtcnn)
-        source = source.to(self.device)
-
+    def _predict(self, source):
         with torch.no_grad():
             source_region_params = self.region_predictor(source)
 
@@ -81,10 +80,24 @@ class PredictorLocal:
                 driving_region_params=new_region_params
             )
 
-            out = np.transpose(out['prediction'].data.cpu().numpy(), [0, 2, 3, 1])[0]
-            out = (np.clip(out, 0, 1) * 255).astype(np.uint8)
-
             return out
+
+
+    def predict(self, driving_frame):
+        assert self.driving_region_params is not None, "call set_source_image()"
+
+        source, _ = get_face(driving_frame, self.mtcnn)
+        source = source.to(self.device)
+
+        if self.magic_mirror.should_predict():
+            out = self._predict(source)['prediction']
+        else:
+            out = source
+
+        out = np.transpose(out.data.cpu().numpy(), [0, 2, 3, 1])[0]
+        out = (np.clip(out, 0, 1) * 255).astype(np.uint8)
+
+        return out
 
     def get_frame_kp(self, image):
         pass
