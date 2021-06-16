@@ -110,10 +110,11 @@ class PredictorWorker():
                     method, data = recv_queue.get()
 
                 log("working on", method, important=True)
+                method_name: str = method['name']
 
                 try:
                     tt.tic()
-                    if method['name'] == 'predict':
+                    if method_name == 'predict':
                         image = cv2.imdecode(np.frombuffer(data, dtype='uint8'), -1)
                     else:
                         args = msgpack.unpackb(data)
@@ -122,12 +123,15 @@ class PredictorWorker():
                     log("Invalid Message", important=True)
                     continue
 
-                log('Using the following args', args, important=True)
+                if method_name in ('set_source_image', 'get_frame_kp'):
+                    log('Image with shape', args[0].shape, important=True)
+                else:
+                    log('Using the following args', args, important=True)
 
                 tt.tic()
-                if method['name'] == "hello":
+                if method_name == "hello":
                     result = "OK"
-                elif method['name'] == "__init__":
+                elif method_name == "__init__":
                     if args == predictor_args:
                         log("Same config as before... reusing previous predictor")
                     else:
@@ -137,17 +141,17 @@ class PredictorWorker():
                         log("Initialized predictor with:", predictor_args, important=True)
                     result = True
                     tt.tic() # don't account for init
-                elif method['name'] == 'predict':
+                elif method_name == 'predict':
                     assert predictor is not None, "Predictor was not initialized"
                     log('Image of shape', image.shape, important=True)
-                    result = getattr(predictor, method['name'])(image)
+                    result = getattr(predictor, method_name)(image)
                 else:
                     assert predictor is not None, "Predictor was not initialized"
-                    result = getattr(predictor, method['name'])(*args[0], **args[1])
+                    result = getattr(predictor, method_name)(*args[0], **args[1])
                 timing.add('CALL', tt.toc())
 
                 tt.tic()
-                if method['name'] == 'predict':
+                if method_name == 'predict':
                     assert isinstance(result, np.ndarray), f'Expected np.ndarray, got {result.__class__}'
                     ret_code, data_send = cv2.imencode(".jpg", result, [int(cv2.IMWRITE_JPEG_QUALITY), opt.jpg_quality])
                 else:

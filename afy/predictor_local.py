@@ -58,7 +58,7 @@ class PredictorLocal:
 
     def set_source_image(self, source_image):
         self.magic_mirror.reset_tic()
-        self.driving = get_face(source_image, self.mtcnn)[0].to(self.device)
+        self.driving = get_face(source_image[0], self.mtcnn)[0].to(self.device)
         self.driving_region_params = self.region_predictor(self.driving)
 
     def _predict(self, source):
@@ -84,7 +84,7 @@ class PredictorLocal:
     def predict(self, driving_frame):
         assert self.driving_region_params is not None, "call set_source_image()"
 
-        source, _ = get_face(driving_frame, self.mtcnn)
+        source, _ = get_face(driving_frame[0], self.mtcnn)
         source = source.to(self.device)
 
         if self.magic_mirror.should_predict():
