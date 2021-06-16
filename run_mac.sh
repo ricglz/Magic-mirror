@@ -7,8 +7,8 @@ source scripts/settings.sh
 source $(conda info --base)/etc/profile.d/conda.sh
 conda activate $CONDA_ENV_NAME
 
-CONFIG=fomm/config/vox-adv-256.yaml
-CKPT=vox-adv-cpk.pth.tar
+CONFIG=articulated/config/vox256.yaml
+CKPT=vox256.pth
 
 export PYTHONPATH=$PYTHONPATH:$(pwd):$(pwd)/fomm
 

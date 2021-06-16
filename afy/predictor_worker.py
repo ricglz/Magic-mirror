@@ -109,7 +109,7 @@ class PredictorWorker():
                     log(f"skip {method}")
                     method, data = recv_queue.get()
 
-                log("working on", method)
+                log("working on", method, important=True)
 
                 try:
                     tt.tic()
@@ -121,6 +121,8 @@ class PredictorWorker():
                 except ValueError:
                     log("Invalid Message", important=True)
                     continue
+
+                log('Using the following args', args, important=True)
 
                 tt.tic()
                 if method['name'] == "hello":
@@ -137,6 +139,7 @@ class PredictorWorker():
                     tt.tic() # don't account for init
                 elif method['name'] == 'predict':
                     assert predictor is not None, "Predictor was not initialized"
+                    log('Image of shape', image.shape, important=True)
                     result = getattr(predictor, method['name'])(image)
                 else:
                     assert predictor is not None, "Predictor was not initialized"
