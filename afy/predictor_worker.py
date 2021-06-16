@@ -1,6 +1,10 @@
-from predictor_local import PredictorLocal
+import multiprocessing as mp
+import queue
+import traceback
+
 from arguments import opt
-from networking import SerializingContext, check_connection
+from networking import SerializingContext
+from predictor_local import PredictorLocal
 from utils import Logger, TicToc, AccumDict, Once
 
 import cv2
@@ -10,24 +14,10 @@ import msgpack
 import msgpack_numpy as m
 m.patch()
 
-import queue
-import multiprocessing as mp
-import traceback
-import time
-
-
-PUT_TIMEOUT = 1 # s
-GET_TIMEOUT = 1 # s
-RECV_TIMEOUT = 1000 # ms
+PUT_TIMEOUT = 1
+GET_TIMEOUT = 1
+RECV_TIMEOUT = 1000
 QUEUE_SIZE = 100
-
-
-# class PredictorLocal():
-#     def __init__(self, *args, **kwargs):
-#         pass
-
-#     def __getattr__(self, *args, **kwargs):
-#         return lambda *args, **kwargs: None
 
 
 class PredictorWorker():
@@ -40,7 +30,7 @@ class PredictorWorker():
         self.recv_process = mp.Process(target=self.recv_worker, args=(in_port, self.recv_queue, self.worker_alive))
         self.predictor_process = mp.Process(target=self.predictor_worker, args=(self.recv_queue, self.send_queue, self.worker_alive))
         self.send_process = mp.Process(target=self.send_worker, args=(out_port, self.send_queue, self.worker_alive))
-    
+
     def run(self):
         self.worker_alive.value = 1
 
@@ -103,7 +93,7 @@ class PredictorWorker():
         predictor_args = ()
         timing = AccumDict()
         log = Logger('./var/log/predictor_worker.log', verbose=opt.verbose)
-        
+
         try:
             while worker_alive.value:
                 tt = TicToc()
@@ -175,8 +165,9 @@ class PredictorWorker():
             log("predictor_worker: user interrupt", important=True)
         except Exception as e:
             log("predictor_worker error", important=True)
+            log(e, important=True)
             traceback.print_exc()
-    
+
         worker_alive.value = 0
         log("predictor_worker exit", important=True)
 
