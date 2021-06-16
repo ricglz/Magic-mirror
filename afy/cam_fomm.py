@@ -8,11 +8,10 @@ import numpy as np
 import requests
 import yaml
 
-from afy.videocaptureasync import VideoCaptureAsync
 from afy.arguments import opt
 from afy.utils import info, Once, Tee, crop, pad_img, resize, TicToc
+from afy.videocaptureasync import VideoCaptureAsync
 import afy.camera_selector as cam_selector
-
 
 log = Tee('./var/log/cam_fomm.log')
 
