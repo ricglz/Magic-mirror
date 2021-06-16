@@ -16,7 +16,7 @@ def to_tensor(a: np.ndarray) -> Tensor:
     return Tensor(a[np.newaxis].astype(np.float32)).permute(0, 3, 1, 2) / 255
 
 def to_numpy(img: Image.Image):
-    return np.array(img.convert('RGB')) / 255.0
+    return np.array(img.convert('RGB'))
 
 def extract_face(image: Image.Image, box) -> Image.Image:
     margin = 25
@@ -28,7 +28,7 @@ def extract_face(image: Image.Image, box) -> Image.Image:
 
 def get_face(image_numpy: np.ndarray, mtcnn: MTCNN):
     with torch.no_grad():
-        image = to_pil_image(to_tensor(image_numpy)).resize((512, 512))
+        image = to_pil_image(to_tensor(image_numpy)[0]).resize((512, 512))
         box = mtcnn.detect(image)[0][0]
         face = to_tensor(to_numpy(extract_face(image, box)))
         return face, box
@@ -58,7 +58,7 @@ class PredictorLocal:
 
     def set_source_image(self, source_image):
         self.magic_mirror.reset_tic()
-        self.driving = get_face(source_image[0], self.mtcnn)[0].to(self.device)
+        self.driving = get_face(source_image, self.mtcnn)[0].to(self.device)
         self.driving_region_params = self.region_predictor(self.driving)
 
     def _predict(self, source):
@@ -84,7 +84,7 @@ class PredictorLocal:
     def predict(self, driving_frame):
         assert self.driving_region_params is not None, "call set_source_image()"
 
-        source, _ = get_face(driving_frame[0], self.mtcnn)
+        source, _ = get_face(driving_frame, self.mtcnn)
         source = source.to(self.device)
 
         if self.magic_mirror.should_predict():
