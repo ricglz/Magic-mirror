@@ -124,7 +124,7 @@ class PredictorWorker():
                     continue
 
                 if method_name in ('set_source_image', 'get_frame_kp'):
-                    log('Image with shape', args[0].shape, important=True)
+                    log('Doing a method that uses an image')
                 else:
                     log('Using the following args', args, important=True)
 
