@@ -9,8 +9,6 @@ from torchvision.transforms.functional import to_pil_image
 
 from articulated.demo import load_checkpoints
 from articulated.animate import get_animation_region_params
-from articulated.modules.generator_optim import OcclusionAwareGenerator
-from articulated.modules.keypoint_detector import KPDetector
 
 from afy.magic_mirror import MagicMirror
 
