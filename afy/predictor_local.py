@@ -1,6 +1,7 @@
 from facenet_pytorch import MTCNN
 from PIL import Image
 from scipy.spatial import ConvexHull
+from PIL import Image
 import numpy as np
 
 import torch
@@ -13,10 +14,13 @@ from articulated.animate import get_animation_region_params
 from afy.magic_mirror import MagicMirror
 
 def to_tensor(a: np.ndarray) -> Tensor:
-    return Tensor(a[np.newaxis].astype(np.float32)).permute(0, 3, 1, 2) / 255
+    return Tensor(a[np.newaxis].astype(np.float32)).permute(0, 3, 1, 2)
 
-def to_numpy(img: Image.Image):
-    return np.array(img.convert('RGB'))
+def to_numpy(img: Image.Image) -> np.ndarray:
+    return np.array(img.convert('RGB')) / 255
+
+def from_numpy_to_pil(array: np.ndarray):
+    return Image.fromarray(array)
 
 def extract_face(image: Image.Image, box) -> Image.Image:
     margin = 25
@@ -26,12 +30,18 @@ def extract_face(image: Image.Image, box) -> Image.Image:
     box[3] += margin
     return image.crop(box).resize((256, 256))
 
+def get_box_and_landmarks(image, mtcnn: MTCNN):
+    box, _, landmarks = mtcnn.detect(image, True)
+    box = box[0]
+    landmarks = np.array(landmarks[0], np.int32)
+    return box, landmarks
+
 def get_face(image_numpy: np.ndarray, mtcnn: MTCNN):
     with torch.no_grad():
         image = to_pil_image(to_tensor(image_numpy)[0]).resize((512, 512))
-        box = mtcnn.detect(image)[0][0]
+        box, landmarks = get_box_and_landmarks(image, mtcnn)
         face = to_tensor(to_numpy(extract_face(image, box)))
-        return face, box
+        return face, landmarks
 
 class PredictorLocal:
     def __init__(
@@ -61,8 +71,11 @@ class PredictorLocal:
         self.driving = get_face(source_image, self.mtcnn)[0].to(self.device)
         self.driving_region_params = self.region_predictor(self.driving)
 
-    def _predict(self, source):
+    def _predict(self, driving_frame):
         with torch.no_grad():
+            source, _ = get_face(driving_frame, self.mtcnn)
+            source = source.to(self.device)
+
             source_region_params = self.region_predictor(source)
 
             new_region_params = get_animation_region_params(
@@ -84,16 +97,14 @@ class PredictorLocal:
     def predict(self, driving_frame):
         assert self.driving_region_params is not None, "call set_source_image()"
 
-        source, _ = get_face(driving_frame, self.mtcnn)
-        source = source.to(self.device)
-
         if self.magic_mirror.should_predict():
-            out = self._predict(source)['prediction']
+            out = self._predict(driving_frame)['prediction']
+            out = np.transpose(out.data.cpu().numpy(), [0, 2, 3, 1])[0]
+            out = (np.clip(out, 0, 1) * 255).astype(np.uint8)
         else:
-            out = source
+            out = driving_frame
 
-        out = np.transpose(out.data.cpu().numpy(), [0, 2, 3, 1])[0]
-        out = (np.clip(out, 0, 1) * 255).astype(np.uint8)
+        out = to_numpy(from_numpy_to_pil(out).resize((512, 512)))
 
         return out
 
