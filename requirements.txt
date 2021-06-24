@@ -1,9 +1,10 @@
 facenet-pytorch==2.4.1
 msgpack-numpy==0.4.7.1
 opencv-python==4.2.0.34
+pandas
 pyfakewebcam==0.1.0
 pyyaml==5.3.1
 pyzmq==20.0.0
 requests==2.25.1
-tqdm
 scikit-learn
+tqdm
