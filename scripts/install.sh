@@ -23,6 +23,6 @@ conda activate $CONDA_ENV_NAME
 
 conda install -y numpy==1.19.0 scikit-image python-blosc==1.7.0 -c conda-forge tqdm
 conda install -y -c pytorch torchvision
-conda install -y -c anaconda sklearn
+conda install -y -c anaconda scikit-learn
 
 pip install -r requirements.txt

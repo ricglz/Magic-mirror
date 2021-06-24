@@ -11,6 +11,6 @@ call conda activate %CONDA_ENV_NAME%
 
 call conda install -y numpy==1.19.0 scikit-image python-blosc==1.7.0 -c conda-forge
 call conda install -y -c pytorch torchvision
-call conda install -y -c anaconda git sklearn
+call conda install -y -c anaconda git scikit-learn
 
 call pip install -r requirements.txt --use-feature=2020-resolver
