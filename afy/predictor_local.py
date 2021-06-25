@@ -44,9 +44,11 @@ def get_face(image_numpy: np.ndarray, mtcnn: MTCNN):
     log('Getting face', important=True)
     with torch.no_grad():
         image = to_pil_image(to_tensor(image_numpy)[0]).resize((512, 512))
-        box, landmarks = get_box_and_landmarks(image, mtcnn)
+        box = mtcnn.detect(image)[0][0]
+        # box, landmarks = get_box_and_landmarks(image, mtcnn)
         face = to_tensor(to_numpy(extract_face(image, box)))
-        return face, landmarks
+        # return face, landmarks
+        return face
 
 class PredictorLocal:
     def __init__(
@@ -78,9 +80,10 @@ class PredictorLocal:
 
     def _predict(self, driving_frame):
         with torch.no_grad():
-            source, landmarks = get_face(driving_frame, self.mtcnn)
+            source = get_face(driving_frame, self.mtcnn)
+            # source, landmarks = get_face(driving_frame, self.mtcnn)
             source = source.to(self.device)
-            source_img_data = driving_frame, landmarks
+            # source_img_data = driving_frame, landmarks
 
             log('Calculating source region params', important=True)
             source_region_params = self.region_predictor(source)
@@ -101,11 +104,11 @@ class PredictorLocal:
                 driving_region_params=new_region_params
             )['prediction'][0]
 
-            log('Doing face-swapping', important=True)
-            modified_face_img = to_pil_image(modified_face).resize((512, 512))
-            _, modified_landmarks = get_box_and_landmarks(modified_face_img, self.mtcnn)
-            modified_img_data = np.array(modified_face_img), modified_landmarks
-            out = swap_faces(source_img_data, modified_img_data)
+            # log('Doing face-swapping', important=True)
+            # modified_face_img = to_pil_image(modified_face).resize((512, 512))
+            # _, modified_landmarks = get_box_and_landmarks(modified_face_img, self.mtcnn)
+            # modified_img_data = np.array(modified_face_img), modified_landmarks
+            # out = swap_faces(source_img_data, modified_img_data)
 
             return out
 
