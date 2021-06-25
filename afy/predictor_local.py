@@ -44,7 +44,10 @@ def get_face(image_numpy: np.ndarray, mtcnn: MTCNN):
     log('Getting face', important=True)
     with torch.no_grad():
         image = to_pil_image(to_tensor(image_numpy)[0]).resize((512, 512))
-        box = mtcnn.detect(image)[0][0]
+        log('Image', image[0], important=True)
+        prediction = mtcnn.detect(image)
+        log('Prediction', prediction, important=True)
+        box = prediction[0][0]
         # box, landmarks = get_box_and_landmarks(image, mtcnn)
         face = to_tensor(to_numpy(extract_face(image, box)))
         # return face, landmarks
