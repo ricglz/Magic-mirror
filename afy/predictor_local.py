@@ -5,7 +5,6 @@ from PIL import Image
 import numpy as np
 
 import torch
-from torch.tensor import Tensor
 from torchvision.transforms.functional import to_pil_image
 
 from afy.face_swap import swap_faces
@@ -16,8 +15,8 @@ from articulated.demo import load_checkpoints
 
 log = Logger('./var/log/predictor_local.log')
 
-def to_tensor(a: np.ndarray) -> Tensor:
-    return Tensor(a[np.newaxis].astype(np.float32)).permute(0, 3, 1, 2)
+def to_tensor(a: np.ndarray):
+    return torch.tensor(a[np.newaxis].astype(np.float32)).permute(0, 3, 1, 2)
 
 def to_numpy(img: Image.Image) -> np.ndarray:
     return np.array(img.convert('RGB')) / 255
