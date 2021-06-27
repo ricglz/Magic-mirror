@@ -1,10 +1,9 @@
+from collections import defaultdict
 import sys
 import time
-from collections import defaultdict
 
 import numpy as np
 import cv2
-
 
 def log(*args, file=sys.stderr, **kwargs):
     time_str = f'{time.time():.6f}'
@@ -13,7 +12,6 @@ def log(*args, file=sys.stderr, **kwargs):
 
 def info(*args, file=sys.stdout, **kwargs):
     print(*args, file=file, **kwargs)
-
 
 class Tee(object):
     def __init__(self, filename, mode='w', terminal=sys.stderr):
@@ -33,7 +31,6 @@ class Tee(object):
     def flush(self):
         self.file.flush()
 
-
 class Logger():
     def __init__(self, filename, verbose=True):
         self.tee = Tee(filename)
@@ -44,7 +41,6 @@ class Logger():
             return
 
         self.tee(*args, **kwargs)
-
 
 class Once():
     _id = {}
@@ -116,7 +112,6 @@ class AccumDict:
 def clamp(value, min_value, max_value):
     return max(min(value, max_value), min_value)
 
-
 def crop(img, p=0.7, offset_x=0, offset_y=0):
     h, w = img.shape[:2]
     x = int(min(w, h) * p)
@@ -135,7 +130,6 @@ def crop(img, p=0.7, offset_x=0, offset_y=0):
 
     return img[u:d, l:r], (offset_x, offset_y)
 
-
 def pad_img(img, target_size, default_pad=0):
     sh, sw = img.shape[:2]
     w, h = target_size
@@ -146,7 +140,6 @@ def pad_img(img, target_size, default_pad=0):
         pad_h += int(sh * (h / w) - sh) // 2
     out = np.pad(img, [[pad_h, pad_h], [pad_w, pad_w], [0,0]], 'constant')
     return out
-
 
 def resize(img, size, version='cv'):
     return cv2.resize(img, size)

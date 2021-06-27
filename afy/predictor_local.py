@@ -1,13 +1,13 @@
+'''Module containing the local predictor class'''
 from facenet_pytorch import MTCNN
 from PIL import Image
 from scipy.spatial import ConvexHull
-from PIL import Image
 import numpy as np
 
 import torch
 from torchvision.transforms.functional import to_pil_image
 
-from afy.face_swap import swap_faces
+# from afy.face_swap import swap_faces
 from afy.magic_mirror import MagicMirror
 from afy.utils import Logger
 from articulated.animate import get_animation_region_params
@@ -25,7 +25,7 @@ def from_numpy_to_pil(array: np.ndarray):
     return Image.fromarray(array)
 
 def extract_face(image: Image.Image, box) -> Image.Image:
-    log('extracting face', important=True)
+    log('Extracting face', important=True)
     margin = 25
     box[0] -= margin
     box[1] -= margin
@@ -34,7 +34,7 @@ def extract_face(image: Image.Image, box) -> Image.Image:
     return image.crop(box).resize((256, 256))
 
 def get_box_and_landmarks(image, mtcnn: MTCNN):
-    log('getting box and landmarks', important=True)
+    log('Getting box and landmarks', important=True)
     box, _, landmarks = mtcnn.detect(image, True)
     box = box[0]
     landmarks = np.array(landmarks[0], np.int32)
@@ -44,26 +44,20 @@ def get_face(image_numpy: np.ndarray, mtcnn: MTCNN):
     log('Getting face', important=True)
     with torch.no_grad():
         image = to_pil_image(to_tensor(image_numpy)[0]).resize((512, 512))
-        log('Image', image[0], important=True)
+        log('Image', image, important=True)
         prediction = mtcnn.detect(image)
         log('Prediction', prediction, important=True)
         box = prediction[0][0]
+        log('Box', box, important=True)
         # box, landmarks = get_box_and_landmarks(image, mtcnn)
         face = to_tensor(to_numpy(extract_face(image, box)))
         # return face, landmarks
         return face
 
 class PredictorLocal:
-    def __init__(
-        self,
-        config_path: str,
-        checkpoint_path: str,
-        device=None,
-    ):
-        self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
-        networks = load_checkpoints(
-                config_path, checkpoint_path, device == 'cpu'
-        )
+    def __init__(self, config_path: str, checkpoint_path: str):
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        networks = load_checkpoints(config_path, checkpoint_path, self.device == 'cpu')
         self.generator, self.region_predictor, self.avd_network = networks
         self.driving = None
         self.driving_region_params = None
@@ -74,6 +68,7 @@ class PredictorLocal:
         pass
 
     def set_source_image(self, source_image):
+        log('Setting source image')
         self.magic_mirror.reset_tic()
         self.driving = get_face(source_image, self.mtcnn)[0].to(self.device)
         self.driving_region_params = self.region_predictor(self.driving)
@@ -103,6 +98,7 @@ class PredictorLocal:
                 source_region_params=self.driving_region_params,
                 driving_region_params=new_region_params
             )['prediction'][0]
+            out = modified_face
 
             # log('Doing face-swapping', important=True)
             # modified_face_img = to_pil_image(modified_face).resize((512, 512))
@@ -116,6 +112,7 @@ class PredictorLocal:
         assert self.driving_region_params is not None, "call set_source_image()"
 
         if self.magic_mirror.should_predict():
+            log('Predicting image')
             out = self._predict(driving_frame)
         else:
             out = driving_frame

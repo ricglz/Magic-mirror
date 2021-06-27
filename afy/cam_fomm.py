@@ -1,5 +1,5 @@
+'''Main module to run camera prediction'''
 from sys import platform as _platform
-import glob
 import os
 import sys
 
@@ -9,7 +9,8 @@ import requests
 import yaml
 
 from afy.arguments import opt
-from afy.utils import info, Once, Tee, crop, pad_img, resize, TicToc
+from afy.helper_functions import load_images
+from afy.utils import info, Tee, pad_img, resize, TicToc
 from afy.videocaptureasync import VideoCaptureAsync
 import afy.camera_selector as cam_selector
 
@@ -23,7 +24,6 @@ LANDMARK_SLICE_ARRAY = np.array([17, 22, 27, 31, 36, 42, 48, 60])
 #         info('\nOnly remote GPU mode is supported for Mac (use --is-client and --connect options to connect to the server)')
 #         info('Standalone version will be available lately!\n')
 #         sys.exit(1)
-
 
 def is_new_frame_better(driving, predictor):
     global avatar_kp, display_string
@@ -49,8 +49,6 @@ def is_new_frame_better(driving, predictor):
     display_string = out_string
     log(out_string)
 
-    return new_norm < old_norm
-
 def load_stylegan_avatar():
     url = "https://thispersondoesnotexist.com/image"
     r = requests.get(url, headers={'User-Agent': "My User Agent 1.0"}).content
@@ -63,29 +61,9 @@ def load_stylegan_avatar():
 
     return image
 
-def load_images(IMG_SIZE = 256):
-    avatars = []
-    filenames = []
-    images_list = sorted(glob.glob(f'{opt.avatars}/*'))
-    for i, f in enumerate(images_list):
-        if f.endswith(('.jpg', '.jpeg', '.png')):
-            img = cv2.imread(f)
-            if img is None:
-                log("Failed to open image: {}".format(f))
-                continue
-
-            if img.ndim == 2:
-                img = np.tile(img[..., None], [1, 1, 3])
-            # img = img[..., :3][..., ::-1]
-            # img = resize(img, (IMG_SIZE, IMG_SIZE))
-            avatars.append(img)
-            filenames.append(f)
-    return avatars, filenames
-
 def change_avatar(predictor, new_avatar):
-    global avatar, avatar_kp, kp_source
+    global avatar, avatar_kp
     avatar_kp = predictor.get_frame_kp(new_avatar)
-    kp_source = None
     avatar = new_avatar
     predictor.set_source_image(avatar)
 
@@ -218,7 +196,7 @@ if __name__ == "__main__":
     cap = VideoCaptureAsync(cam_id)
     cap.start()
 
-    avatars, avatar_names = load_images()
+    avatars, avatar_names = load_images(opt)
 
     enable_vcam = not opt.no_stream
 
@@ -389,7 +367,7 @@ if __name__ == "__main__":
             elif key == ord('l'):
                 try:
                     log('Reloading avatars...')
-                    avatars, avatar_names = load_images()
+                    avatars, avatar_names = load_images(opt)
                     passthrough = False
                     log("Images reloaded")
                 except:
