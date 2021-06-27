@@ -188,9 +188,6 @@ if __name__ == "__main__":
     predictor_args = {
         'config_path': opt.config,
         'checkpoint_path': opt.checkpoint,
-        'relative': opt.relative,
-        'adapt_movement_scale': opt.adapt_scale,
-        'enc_downscale': opt.enc_downscale
     }
     if opt.is_worker:
         from afy import predictor_worker

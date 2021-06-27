@@ -58,10 +58,7 @@ class PredictorLocal:
         self,
         config_path: str,
         checkpoint_path: str,
-        relative=False,
-        adapt_movement_scale=False,
         device=None,
-        enc_downscale=1
     ):
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         networks = load_checkpoints(
