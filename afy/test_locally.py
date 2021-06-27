@@ -1,12 +1,10 @@
 '''Module to test using a video the local predictor'''
-from argparse import ArgumentParser
-
 import cv2
 
 from afy.local_arguments import local_opt
 from afy.utils import Tee
 from afy.predictor_local import PredictorLocal
-from afy.helper_functions import load_images
+from afy.helper_functions import load_images, prepare_image
 
 log = Tee('./var/log/test_locally.log')
 
@@ -24,11 +22,22 @@ def create_objects():
 
 def main():
     '''Main function'''
-    predictor, avatars = create_objects()
+    predictor, _ = create_objects()
     cap = cv2.VideoCapture(local_opt.input_video)
+    fps = 24
+    out = cv2.VideoWriter(
+        'output.mp4',
+        cv2.VideoWriter_fourcc(*'MP4V'),
+        fps,
+        predictor.output_size,
+    )
     ret, frame = cap.read()
     while ret:
+        frame = prepare_image(frame)
+        prediction = predictor.predict(frame)
+        out.write(prediction)
         ret, frame = cap.read()
+    cap.release()
 
 if __name__ == "__main__":
     main()

@@ -55,6 +55,8 @@ def get_face(image_numpy: np.ndarray, mtcnn: MTCNN):
         return face
 
 class PredictorLocal:
+    output_size = (512, 512)
+
     def __init__(self, config_path: str, checkpoint_path: str):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         networks = load_checkpoints(config_path, checkpoint_path, self.device == 'cpu')
@@ -117,7 +119,7 @@ class PredictorLocal:
         else:
             out = driving_frame
 
-        out = to_numpy(from_numpy_to_pil(out).resize((512, 512)))
+        out = to_numpy(from_numpy_to_pil(out).resize(self.output_size))
 
         return out
 
