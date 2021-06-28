@@ -9,7 +9,7 @@ from afy.utils import resize
 def prepare_image(img: np.ndarray, IMG_SIZE=512):
     if img.ndim == 2:
         img = np.tile(img[..., None], [1, 1, 3])
-    img = img[..., :3]
+    img = img[..., :3][..., ::-1]
     img = resize(img, (IMG_SIZE, IMG_SIZE))
     return img
 
