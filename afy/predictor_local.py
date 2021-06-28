@@ -2,10 +2,9 @@
 from facenet_pytorch import MTCNN
 from PIL import Image
 from scipy.spatial import ConvexHull
+import cv2
 import numpy as np
-
 import torch
-from torchvision.transforms.functional import to_pil_image
 
 # from afy.face_swap import swap_faces
 from afy.magic_mirror import MagicMirror
@@ -20,9 +19,6 @@ def to_tensor(a: np.ndarray):
 
 def to_numpy(img: Image.Image) -> np.ndarray:
     return np.array(img.convert('RGB')) / 255
-
-def from_numpy_to_pil(array: np.ndarray):
-    return Image.fromarray(array)
 
 def extract_face(image: Image.Image, box) -> Image.Image:
     log('Extracting face', important=True)
@@ -43,7 +39,7 @@ def get_box_and_landmarks(image, mtcnn: MTCNN):
 def get_face(image_numpy: np.ndarray, mtcnn: MTCNN):
     log('Getting face', important=True)
     with torch.no_grad():
-        image = to_pil_image(to_tensor(image_numpy)[0]).resize((512, 512))
+        image = Image.fromarray(cv2.cvtColor(image_numpy, cv2.COLOR_BGR2RGB))
         image.save('tmp.png')
         log('Image', image, important=True)
         prediction = mtcnn.detect(image)
