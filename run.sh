@@ -91,8 +91,6 @@ if [[ $USE_DOCKER == 0 ]]; then
         --config $FOMM_CONFIG \
         --checkpoint $FOMM_CKPT \
         --virt-cam $CAMID_VIRT \
-        --relative \
-        --adapt_scale \
         $@
 else
 
@@ -130,8 +128,6 @@ else
                 --config $FOMM_CONFIG \
                 --checkpoint $FOMM_CKPT \
                 --virt-cam $CAMID_VIRT \
-                --relative \
-                --adapt_scale \
                 $@
         xhost -local:root
 
@@ -143,8 +139,6 @@ else
                 --config $FOMM_CONFIG \
                 --checkpoint $FOMM_CKPT \
                 --virt-cam $CAMID_VIRT \
-                --relative \
-                --adapt_scale \
                 $@
     fi
 

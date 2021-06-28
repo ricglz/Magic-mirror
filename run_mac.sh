@@ -12,4 +12,4 @@ CKPT=vox256.pth
 
 export PYTHONPATH=$PYTHONPATH:$(pwd):$(pwd)/fomm
 
-python afy/cam_fomm.py --config "$CONFIG" --checkpoint "$CKPT" --relative --adapt_scale --no-pad $@
+python afy/cam_fomm.py --config "$CONFIG" --checkpoint "$CKPT" --no-pad $@
