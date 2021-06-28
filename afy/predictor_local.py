@@ -44,6 +44,7 @@ def get_face(image_numpy: np.ndarray, mtcnn: MTCNN):
     log('Getting face', important=True)
     with torch.no_grad():
         image = to_pil_image(to_tensor(image_numpy)[0]).resize((512, 512))
+        image.save('tmp.png')
         log('Image', image, important=True)
         prediction = mtcnn.detect(image)
         log('Prediction', prediction, important=True)
