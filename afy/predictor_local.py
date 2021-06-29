@@ -5,14 +5,16 @@ from scipy.spatial import ConvexHull
 import cv2
 import numpy as np
 import torch
+from torchvision.transforms.functional import to_pil_image
 
-# from afy.face_swap import swap_faces
+from afy.face_swap import swap_faces
 from afy.magic_mirror import MagicMirror
 from afy.utils import Logger
 from articulated.animate import get_animation_region_params
 from articulated.demo import load_checkpoints
 
 log = Logger('./var/log/predictor_local.log')
+mtcnn = MTCNN()
 
 def to_tensor(a: np.ndarray):
     return torch.tensor(a[np.newaxis].astype(np.float32)).permute(0, 3, 1, 2)
@@ -29,27 +31,24 @@ def extract_face(image: Image.Image, box) -> Image.Image:
     box[3] += margin
     return image.crop(box).resize((256, 256))
 
-def get_box_and_landmarks(image, mtcnn: MTCNN):
+def get_box_and_landmarks(image):
     log('Getting box and landmarks', important=True)
     box, _, landmarks = mtcnn.detect(image, True)
     box = box[0]
     landmarks = np.array(landmarks[0], np.int32)
+    log('Box and Landmarks', box, landmarks, important=True)
     return box, landmarks
 
-def get_face(image_numpy: np.ndarray, mtcnn: MTCNN):
+def get_face(image_numpy: np.ndarray):
     log('Getting face', important=True)
     with torch.no_grad():
         image = Image.fromarray(cv2.cvtColor(image_numpy, cv2.COLOR_BGR2RGB))
         image.save('tmp.png')
         log('Image', image, important=True)
-        prediction = mtcnn.detect(image)
-        log('Prediction', prediction, important=True)
-        box = prediction[0][0]
-        log('Box', box, important=True)
-        # box, landmarks = get_box_and_landmarks(image, mtcnn)
+        box, landmarks = get_box_and_landmarks(image)
         face = to_tensor(to_numpy(extract_face(image, box)))
-        # return face, landmarks
-        return face
+        log('Face shape', face.shape, important=True)
+        return face, landmarks
 
 class PredictorLocal:
     output_size = (512, 512)
@@ -60,7 +59,6 @@ class PredictorLocal:
         self.generator, self.region_predictor, self.avd_network = networks
         self.driving = None
         self.driving_region_params = None
-        self.mtcnn = MTCNN()
         self.magic_mirror = MagicMirror()
 
     def reset_frames(self):
@@ -69,15 +67,14 @@ class PredictorLocal:
     def set_source_image(self, source_image):
         log('Setting source image')
         self.magic_mirror.reset_tic()
-        self.driving = get_face(source_image, self.mtcnn)[0].to(self.device)
+        self.driving = get_face(source_image)[0].to(self.device)
         self.driving_region_params = self.region_predictor(self.driving)
 
     def _predict(self, driving_frame):
         with torch.no_grad():
-            source = get_face(driving_frame, self.mtcnn)
-            # source, landmarks = get_face(driving_frame, self.mtcnn)
-            source = source.to(self.device)
-            # source_img_data = driving_frame, landmarks
+            source = get_face(driving_frame)
+            source, landmarks = get_face(driving_frame)
+            source_img_data = driving_frame, landmarks
 
             log('Calculating source region params', important=True)
             source_region_params = self.region_predictor(source)
@@ -99,11 +96,11 @@ class PredictorLocal:
             )['prediction'][0]
             out = modified_face
 
-            # log('Doing face-swapping', important=True)
-            # modified_face_img = to_pil_image(modified_face).resize((512, 512))
-            # _, modified_landmarks = get_box_and_landmarks(modified_face_img, self.mtcnn)
-            # modified_img_data = np.array(modified_face_img), modified_landmarks
-            # out = swap_faces(source_img_data, modified_img_data)
+            log('Doing face-swapping', important=True)
+            modified_face_img = to_pil_image(modified_face)
+            _, modified_landmarks = get_box_and_landmarks(modified_face_img)
+            modified_img_data = np.array(modified_face_img), modified_landmarks
+            out = swap_faces(source_img_data, modified_img_data)
 
             return out
 
@@ -116,7 +113,7 @@ class PredictorLocal:
         else:
             out = driving_frame
 
-        out = to_numpy(from_numpy_to_pil(out).resize(self.output_size))
+        out = to_numpy(Image.fromarray(out).resize(self.output_size))
 
         return out
 
