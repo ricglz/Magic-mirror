@@ -40,6 +40,7 @@ def get_face(image_numpy: np.ndarray):
         image = Image.fromarray(cv2.cvtColor(image_numpy, cv2.COLOR_BGR2RGB))
         box, landmarks = get_box_and_landmarks(image)
         face = to_tensor(to_numpy(extract_face(image, box)))
+        to_pil_image(face).save('face.jpg')
         return face, landmarks
 
 class PredictorLocal:
@@ -99,7 +100,14 @@ class PredictorLocal:
         else:
             out = driving_frame
 
-        out = to_numpy(Image.fromarray(out).resize(self.output_size))
+        error_msg = f'Expected out to be np.ndarray, got {out.__class__}'
+        assert isinstance(out, np.ndarray), error_msg
+
+        out = Image.fromarray(out).resize(self.output_size)
+        out.save('out_image_pil.jpg')
+
+        out = np.array(out.convert('BGR'))
+        cv2.imwrite('out_image_cv2.jpg')
 
         return out
 

@@ -107,9 +107,11 @@ class PredictorWorker():
                     log(f"skip {method}")
                     method, data = recv_queue.get()
 
-                log("working on", method, important=True)
                 method_name: str = method['name']
                 is_predict_method = method_name == 'predict'
+
+                if not is_predict_method:
+                    log("working on", method)
 
                 try:
                     tt.tic()
@@ -138,6 +140,7 @@ class PredictorWorker():
                 elif is_predict_method:
                     assert predictor is not None, "Predictor was not initialized"
                     result = getattr(predictor, method_name)(image)
+                    assert False
                 else:
                     assert predictor is not None, "Predictor was not initialized"
                     result = getattr(predictor, method_name)(*args[0], **args[1])
@@ -146,7 +149,7 @@ class PredictorWorker():
                 tt.tic()
                 if is_predict_method:
                     assert isinstance(result, np.ndarray), f'Expected np.ndarray, got {result.__class__}'
-                    ret_code, data_send = cv2.imencode(".jpg", result, [int(cv2.IMWRITE_JPEG_QUALITY), opt.jpg_quality])
+                    _, data_send = cv2.imencode(".jpg", result, [int(cv2.IMWRITE_JPEG_QUALITY), opt.jpg_quality])
                 else:
                     data_send = msgpack.packb(result)
                 timing.add('PACK', tt.toc())
