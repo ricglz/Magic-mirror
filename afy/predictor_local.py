@@ -19,10 +19,10 @@ def to_tensor(a: np.ndarray):
     return torch.tensor(a[np.newaxis].astype(np.float32)).permute(0, 3, 1, 2)
 
 def to_numpy(img: Image.Image) -> np.ndarray:
-    return np.array(img.convert('RGB')) / 255
+    return np.array(img) / 255
 
 def pil_to_cv2(img: Image.Image):
-    return np.array(img.convert('BGR'))
+    return cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
 
 def extract_face(image: Image.Image, box) -> Image.Image:
     margin = 25
