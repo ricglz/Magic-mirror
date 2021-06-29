@@ -69,8 +69,6 @@ class PredictorWorker():
                     log("recv timeout")
                     continue
 
-                #log('recv', msg[0])
-
                 method, data = msg
                 if method['critical']:
                     recv_queue.put(msg)
@@ -111,10 +109,11 @@ class PredictorWorker():
 
                 log("working on", method, important=True)
                 method_name: str = method['name']
+                is_predict_method = method_name = 'predict'
 
                 try:
                     tt.tic()
-                    if method_name == 'predict':
+                    if is_predict_method:
                         image = cv2.imdecode(np.frombuffer(data, dtype='uint8'), -1)
                     else:
                         args = msgpack.unpackb(data)
@@ -122,11 +121,6 @@ class PredictorWorker():
                 except ValueError:
                     log("Invalid Message", important=True)
                     continue
-
-                if method_name in ('set_source_image', 'get_frame_kp'):
-                    log('Image with shape', args[0][0].shape, important=True)
-                else:
-                    log('Using the following args', args, important=True)
 
                 tt.tic()
                 if method_name == "hello":
@@ -141,9 +135,8 @@ class PredictorWorker():
                         log("Initialized predictor with:", predictor_args, important=True)
                     result = True
                     tt.tic() # don't account for init
-                elif method_name == 'predict':
+                elif is_predict_method:
                     assert predictor is not None, "Predictor was not initialized"
-                    log('Image of shape', image.shape, important=True)
                     result = getattr(predictor, method_name)(image)
                 else:
                     assert predictor is not None, "Predictor was not initialized"
@@ -151,7 +144,7 @@ class PredictorWorker():
                 timing.add('CALL', tt.toc())
 
                 tt.tic()
-                if method_name == 'predict':
+                if is_predict_method:
                     assert isinstance(result, np.ndarray), f'Expected np.ndarray, got {result.__class__}'
                     ret_code, data_send = cv2.imencode(".jpg", result, [int(cv2.IMWRITE_JPEG_QUALITY), opt.jpg_quality])
                 else:

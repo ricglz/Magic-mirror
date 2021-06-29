@@ -13,7 +13,6 @@ from afy.utils import Logger
 from articulated.animate import get_animation_region_params
 from articulated.demo import load_checkpoints
 
-log = Logger('./var/log/predictor_local.log')
 mtcnn = MTCNN()
 
 def to_tensor(a: np.ndarray):
@@ -23,7 +22,6 @@ def to_numpy(img: Image.Image) -> np.ndarray:
     return np.array(img.convert('RGB')) / 255
 
 def extract_face(image: Image.Image, box) -> Image.Image:
-    log('Extracting face', important=True)
     margin = 25
     box[0] -= margin
     box[1] -= margin
@@ -32,22 +30,16 @@ def extract_face(image: Image.Image, box) -> Image.Image:
     return image.crop(box).resize((256, 256))
 
 def get_box_and_landmarks(image):
-    log('Getting box and landmarks', important=True)
     box, _, landmarks = mtcnn.detect(image, True)
     box = box[0]
     landmarks = np.array(landmarks[0], np.int32)
-    log('Box and Landmarks', box, landmarks, important=True)
     return box, landmarks
 
 def get_face(image_numpy: np.ndarray):
-    log('Getting face', important=True)
     with torch.no_grad():
         image = Image.fromarray(cv2.cvtColor(image_numpy, cv2.COLOR_BGR2RGB))
-        image.save('tmp.png')
-        log('Image', image, important=True)
         box, landmarks = get_box_and_landmarks(image)
         face = to_tensor(to_numpy(extract_face(image, box)))
-        log('Face shape', face.shape, important=True)
         return face, landmarks
 
 class PredictorLocal:
@@ -65,7 +57,6 @@ class PredictorLocal:
         pass
 
     def set_source_image(self, source_image):
-        log('Setting source image')
         self.magic_mirror.reset_tic()
         self.driving = get_face(source_image)[0].to(self.device)
         self.driving_region_params = self.region_predictor(self.driving)
@@ -76,10 +67,8 @@ class PredictorLocal:
             source, landmarks = get_face(driving_frame)
             source_img_data = driving_frame, landmarks
 
-            log('Calculating source region params', important=True)
             source_region_params = self.region_predictor(source)
 
-            log('Calculating new region params', important=True)
             new_region_params = get_animation_region_params(
                 self.driving_region_params,
                 source_region_params,
@@ -88,7 +77,6 @@ class PredictorLocal:
                 mode='avd'
             )
 
-            log('Calculating modified face', important=True)
             modified_face = self.generator(
                 self.driving,
                 source_region_params=self.driving_region_params,
@@ -96,7 +84,6 @@ class PredictorLocal:
             )['prediction'][0]
             out = modified_face
 
-            log('Doing face-swapping', important=True)
             modified_face_img = to_pil_image(modified_face)
             _, modified_landmarks = get_box_and_landmarks(modified_face_img)
             modified_img_data = np.array(modified_face_img), modified_landmarks
@@ -108,7 +95,6 @@ class PredictorLocal:
         assert self.driving_region_params is not None, "call set_source_image()"
 
         if self.magic_mirror.should_predict():
-            log('Predicting image')
             out = self._predict(driving_frame)
         else:
             out = driving_frame
