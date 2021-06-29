@@ -140,7 +140,6 @@ class PredictorWorker():
                 elif is_predict_method:
                     assert predictor is not None, "Predictor was not initialized"
                     result = getattr(predictor, method_name)(image)
-                    assert False
                 else:
                     assert predictor is not None, "Predictor was not initialized"
                     result = getattr(predictor, method_name)(*args[0], **args[1])
