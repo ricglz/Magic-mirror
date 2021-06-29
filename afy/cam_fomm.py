@@ -434,7 +434,7 @@ if __name__ == "__main__":
                     out = resize(out, stream_img_size)
                     stream.schedule_frame(out)
 
-                cv2.imshow('avatarify', out[..., ::-1])
+                cv2.imshow('avatarify', out)
 
             fps_hist.append(tt.toc(total=True))
             if len(fps_hist) == 10:
