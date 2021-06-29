@@ -109,7 +109,7 @@ class PredictorWorker():
 
                 log("working on", method, important=True)
                 method_name: str = method['name']
-                is_predict_method = method_name = 'predict'
+                is_predict_method = method_name == 'predict'
 
                 try:
                     tt.tic()
