@@ -21,6 +21,9 @@ def to_tensor(a: np.ndarray):
 def to_numpy(img: Image.Image) -> np.ndarray:
     return np.array(img.convert('RGB')) / 255
 
+def pil_to_cv2(img: Image.Image):
+    return np.array(img.convert('BGR'))
+
 def extract_face(image: Image.Image, box) -> Image.Image:
     margin = 25
     box[0] -= margin
@@ -40,7 +43,7 @@ def get_face(image_numpy: np.ndarray):
         image = Image.fromarray(cv2.cvtColor(image_numpy, cv2.COLOR_BGR2RGB))
         box, landmarks = get_box_and_landmarks(image)
         face = to_tensor(to_numpy(extract_face(image, box)))
-        to_pil_image(face).save('face.jpg')
+        to_pil_image(face[0]).save('face.jpg')
         return face, landmarks
 
 class PredictorLocal:
@@ -62,7 +65,7 @@ class PredictorLocal:
         self.driving = get_face(source_image)[0].to(self.device)
         self.driving_region_params = self.region_predictor(self.driving)
 
-    def _predict(self, driving_frame):
+    def _predict(self, driving_frame: np.ndarray):
         with torch.no_grad():
             source = get_face(driving_frame)
             source, landmarks = get_face(driving_frame)
@@ -87,12 +90,12 @@ class PredictorLocal:
 
             modified_face_img = to_pil_image(modified_face)
             _, modified_landmarks = get_box_and_landmarks(modified_face_img)
-            modified_img_data = np.array(modified_face_img), modified_landmarks
+            modified_img_data = pil_to_cv2(modified_face_img), modified_landmarks
             out = swap_faces(source_img_data, modified_img_data)
 
             return out
 
-    def predict(self, driving_frame):
+    def predict(self, driving_frame: np.ndarray):
         assert self.driving_region_params is not None, "call set_source_image()"
 
         if self.magic_mirror.should_predict():
@@ -106,7 +109,7 @@ class PredictorLocal:
         out = Image.fromarray(out).resize(self.output_size)
         out.save('out_image_pil.jpg')
 
-        out = np.array(out.convert('BGR'))
+        out = pil_to_cv2(out)
         cv2.imwrite('out_image_cv2.jpg')
 
         return out
