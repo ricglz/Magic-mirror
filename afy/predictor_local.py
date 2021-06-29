@@ -110,7 +110,7 @@ class PredictorLocal:
         out.save('out_image_pil.jpg')
 
         out = pil_to_cv2(out)
-        cv2.imwrite('out_image_cv2.jpg')
+        cv2.imwrite('out_image_cv2.jpg', out)
 
         return out
 
