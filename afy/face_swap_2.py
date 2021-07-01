@@ -181,11 +181,9 @@ class Faceswap:
         if len(rects) != 1:
             raise ValueError('There should be one face in the image')
 
-        landmarks = [
-            numpy.matrix([
-                [p.x, p.y] for p in self.predictor(img, rects[0]).parts()
-            ])
-        ]
+        landmarks = numpy.matrix([
+            [p.x, p.y] for p in self.predictor(img, rects[0]).parts()
+        ])
 
         # Save to image cache
         self.landmark_hashes[img_hash] = landmarks
@@ -198,8 +196,8 @@ class Faceswap:
         im2 = face
 
         try:
-            landmarks1 = self._get_landmarks(head)[0]
-            landmarks2 = self._get_landmarks(face)[0]
+            landmarks1 = self._get_landmarks(head)
+            landmarks2 = self._get_landmarks(face)
         except ValueError:
             return im1
 
