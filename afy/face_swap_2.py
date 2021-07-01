@@ -29,8 +29,8 @@ import cv2
 import dlib
 import numpy
 
-BLUR_AMOUNT = 0.6
-FEATHER_AMOUNT = 11
+BLUR_AMOUNT = 1
+FEATHER_AMOUNT = 21
 SCALE_FACTOR = 1
 
 JAW_POINTS = list(range(0, 17))
