@@ -33,30 +33,25 @@ BLUR_AMOUNT = 0.6
 FEATHER_AMOUNT = 11
 SCALE_FACTOR = 1
 
-FACE_POINTS = list(range(17, 68))
-MOUTH_POINTS = list(range(48, 61))
+JAW_POINTS = list(range(0, 17))
 RIGHT_BROW_POINTS = list(range(17, 22))
 LEFT_BROW_POINTS = list(range(22, 27))
+NOSE_POINTS = list(range(27, 36))
 RIGHT_EYE_POINTS = list(range(36, 42))
 LEFT_EYE_POINTS = list(range(42, 48))
-NOSE_POINTS = list(range(27, 35))
-JAW_POINTS = list(range(0, 17))
+MOUTH_POINTS = list(range(48, 61))
 
 EYES_BROWS_POINTS = (
-    LEFT_EYE_POINTS + RIGHT_EYE_POINTS + LEFT_BROW_POINTS + RIGHT_BROW_POINTS
+    RIGHT_BROW_POINTS +
+    LEFT_BROW_POINTS +
+    RIGHT_EYE_POINTS +
+    LEFT_EYE_POINTS
 )
 
 NOSE_MOUTH_POINTS = NOSE_POINTS + MOUTH_POINTS
 
 # Points used to line up the images.
-ALIGN_POINTS = (
-    LEFT_BROW_POINTS +
-    RIGHT_EYE_POINTS +
-    LEFT_EYE_POINTS +
-    RIGHT_BROW_POINTS +
-    NOSE_POINTS +
-    MOUTH_POINTS
-)
+ALIGN_POINTS = JAW_POINTS + EYES_BROWS_POINTS + NOSE_MOUTH_POINTS
 
 def draw_convex_hull(img, points, color):
     points = cv2.convexHull(points)
@@ -106,7 +101,8 @@ def transformation_from_points(points1, points2):
                                        c2.T - (s2 / s1) * R * c1.T)),
                          numpy.matrix([0., 0., 1.])])
 class Faceswap:
-    def __init__(self,
+    def __init__(
+        self,
         predictor_path = './shape_predictor_68_face_landmarks.dat',
         overlay_eyesbrows = True,
         overlay_nosemouth = True,
