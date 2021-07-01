@@ -58,19 +58,27 @@ ALIGN_POINTS = (
     MOUTH_POINTS
 )
 
-def draw_convex_hull(im, points, color):
+def draw_convex_hull(img, points, color):
     points = cv2.convexHull(points)
-    cv2.fillConvexPoly(im, points, color=color)
+    cv2.fillConvexPoly(img, points, color=color)
 
-def warp_im(im, M, dshape):
-    output_im = numpy.zeros(dshape, dtype=im.dtype)
-    cv2.warpAffine(im,
+def warp_im(img, M, dshape):
+    output_im = numpy.zeros(dshape, dtype=img.dtype)
+    cv2.warpAffine(img,
                    M[:2],
                    (dshape[1], dshape[0]),
                    dst=output_im,
                    borderMode=cv2.BORDER_TRANSPARENT,
                    flags=cv2.WARP_INVERSE_MAP)
     return output_im
+
+def prepare_transformation_points(points: numpy.ndarray):
+    points = points.astype(numpy.float64)
+    mean = numpy.mean(points, axis=0)
+    points -= mean
+    std = numpy.std(points)
+    points /= std
+    return points, mean, std
 
 def transformation_from_points(points1, points2):
     """
@@ -83,18 +91,8 @@ def transformation_from_points(points1, points2):
     # the following for more details:
     #   https://en.wikipedia.org/wiki/Orthogonal_Procrustes_problem
 
-    points1 = points1.astype(numpy.float64)
-    points2 = points2.astype(numpy.float64)
-
-    c1 = numpy.mean(points1, axis=0)
-    c2 = numpy.mean(points2, axis=0)
-    points1 -= c1
-    points2 -= c2
-
-    s1 = numpy.std(points1)
-    s2 = numpy.std(points2)
-    points1 /= s1
-    points2 /= s2
+    points1, c1, s1 = prepare_transformation_points(points1)
+    points2, c2, s2 = prepare_transformation_points(points2)
 
     U, S, Vt = numpy.linalg.svd(points1.T * points2)
 
@@ -156,36 +154,36 @@ class Faceswap:
         return (im2.astype(numpy.float64) * im1_blur.astype(numpy.float64) /
                                             im2_blur.astype(numpy.float64))
 
-    def _get_face_mask(self, im, landmarks):
-        im = numpy.zeros(im.shape[:2], dtype=numpy.float64)
+    def _get_face_mask(self, img, landmarks):
+        img = numpy.zeros(img.shape[:2], dtype=numpy.float64)
 
         for group in self.overlay_points:
-            draw_convex_hull(im, landmarks[group], color=1)
+            draw_convex_hull(img, landmarks[group], color=1)
 
-        im = numpy.array([im, im, im]).transpose((1, 2, 0))
+        img = numpy.array([img, img, img]).transpose((1, 2, 0))
 
-        im = (cv2.GaussianBlur(im, (self.feather, self.feather), 0) > 0) * 1.0
-        im = cv2.GaussianBlur(im, (self.feather, self.feather), 0)
+        img = (cv2.GaussianBlur(img, (self.feather, self.feather), 0) > 0) * 1.0
+        img = cv2.GaussianBlur(img, (self.feather, self.feather), 0)
 
-        return im
+        return img
 
-    def _get_landmarks(self, im):
+    def _get_landmarks(self, img):
         # This is by far the slowest part of the whole algorithm, so we
         # cache the landmarks if the image is the same, especially when
         # dealing with videos this makes things twice as fast
-        img_hash = str(abs(hash(im.data.tobytes())))
+        img_hash = str(abs(hash(img.data.tobytes())))
 
         if img_hash in self.landmark_hashes:
             return self.landmark_hashes[img_hash]
 
-        rects = self.detector(im, 1)
+        rects = self.detector(img, 1)
 
         if len(rects) != 1:
             raise ValueError('There should be one face in the image')
 
         landmarks = [
             numpy.matrix([
-                [p.x, p.y] for p in self.predictor(im, rects[0]).parts()
+                [p.x, p.y] for p in self.predictor(img, rects[0]).parts()
             ])
         ]
 
@@ -194,61 +192,38 @@ class Faceswap:
 
         return landmarks
 
-    def faceswap(
-        self,
-        head,
-        face,
-        order = None,
-        order_repeat = False
-    ):
+    def faceswap(self, head, face):
+        '''Inserts the face into the head'''
         im1 = head
         im2 = face
 
         try:
-            landmarks1 = self._get_landmarks(head)
-            landmarks2 = self._get_landmarks(face)
+            landmarks1 = self._get_landmarks(head)[0]
+            landmarks2 = self._get_landmarks(face)[0]
         except ValueError:
             return im1
 
         output_im = im1
 
-        for index1 in range(0, len(landmarks1)):
-            if order:
-                if order_repeat:
-                    index_lookup = index1 % len(order)
-                else:
-                    index_lookup = index1
+        M = transformation_from_points(
+            landmarks1[ALIGN_POINTS],
+            landmarks2[ALIGN_POINTS]
+        )
 
-                try:
-                    index2 = order[index_lookup]
-                except IndexError:
-                    print("Invalid index lookup, skipping face")
-                    continue
-            else:
-                index2 = index1
+        mask = self._get_face_mask(im2, landmarks2)
+        warped_mask = warp_im(mask, M, im1.shape)
 
-            if index2 == -1:
-                continue
+        combined_mask = numpy.max(
+            [self._get_face_mask(im1, landmarks1), warped_mask],
+            axis=0
+        )
 
-            M = transformation_from_points(
-                landmarks1[index1][ALIGN_POINTS],
-                landmarks2[index2][ALIGN_POINTS]
-            )
+        warped_im2 = warp_im(im2, M, im1.shape)
 
-            mask = self._get_face_mask(im2, landmarks2[index2])
-            warped_mask = warp_im(mask, M, im1.shape)
+        warped_corrected_im2 = self._correct_colours(
+            im1, warped_im2, landmarks1
+        )
 
-            combined_mask = numpy.max(
-                [self._get_face_mask(im1, landmarks1[index1]), warped_mask],
-                axis=0
-            )
-
-            warped_im2 = warp_im(im2, M, im1.shape)
-
-            warped_corrected_im2 = self._correct_colours(
-                im1, warped_im2, landmarks1[index1]
-            )
-
-            output_im = output_im * (1.0 - combined_mask) + warped_corrected_im2 * combined_mask
+        output_im = output_im * (1.0 - combined_mask) + warped_corrected_im2 * combined_mask
 
         return output_im.astype(numpy.uint8)
