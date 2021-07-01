@@ -204,8 +204,7 @@ class Faceswap:
         output_im = im1
 
         M = transformation_from_points(
-            landmarks1[ALIGN_POINTS],
-            landmarks2[ALIGN_POINTS]
+            landmarks1[ALIGN_POINTS], landmarks2[ALIGN_POINTS]
         )
 
         mask = self._get_face_mask(im2, landmarks2)
