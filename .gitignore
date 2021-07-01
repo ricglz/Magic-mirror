@@ -1,6 +1,8 @@
 avatars
 cam.yaml
-vox-adv-cpk.pth.tar
+*.pth*
+*.jpg
+*.dat
 
 __pycache__
 
