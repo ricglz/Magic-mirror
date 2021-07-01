@@ -1,7 +1,6 @@
 '''Module containing the local predictor class'''
 from facenet_pytorch import MTCNN
 from PIL import Image
-from scipy.spatial import ConvexHull
 import cv2
 import numpy as np
 import torch
