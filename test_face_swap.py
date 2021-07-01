@@ -1,7 +1,18 @@
 import cv2
-from tqdm import tqdm
+# from tqdm import tqdm
 
 from afy.face_swap_2 import Faceswap
+
+def annotate_landmarks(im, landmarks):
+    im = im.copy()
+    for idx, point in enumerate(landmarks):
+        pos = (point[0, 0], point[0, 1])
+        cv2.putText(im, str(idx), pos,
+                    fontFace=cv2.FONT_HERSHEY_SCRIPT_SIMPLEX,
+                    fontScale=0.4,
+                    color=(0, 0, 255))
+        cv2.circle(im, pos, 3, color=(0, 255, 255))
+    return im
 
 def main():
     img_1 = cv2.imread('./avatars/opened_eyes.jpg')
@@ -10,13 +21,7 @@ def main():
     swapper = Faceswap()
 
     swapped = swapper.faceswap(img_1, img_2)
-    print(swapped.dtype, img_1.dtype)
-    cv2.imshow('img_1', img_1)
-    cv2.imshow('img_2', img_2)
-    cv2.imshow('swapped_face', swapped)
-    cv2.waitKey(0)
-
-    cv2.destroyAllWindows()
+    cv2.imwrite('swapped_face_2.jpg', swapped)
 
 if __name__ == "__main__":
     main()
