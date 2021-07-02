@@ -205,8 +205,8 @@ class Faceswap:
         im2 = face
 
         try:
-            landmarks1 = self._get_landmarks(head, head_bboxes)
-            landmarks2 = self._get_landmarks(face, face_bboxes)
+            landmarks1 = self._get_landmarks(head.copy(), head_bboxes)
+            landmarks2 = self._get_landmarks(face.copy(), face_bboxes)
         except ValueError:
             return im1
 
