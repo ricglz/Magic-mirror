@@ -24,11 +24,19 @@ To run the script you'll need to install dlib (http://dlib.net) including its
 Python bindings, and OpenCV. You'll also need to obtain the trained model from
 sourceforge:
     http://sourceforge.net/projects/dclib/files/dlib/v18.10/shape_predictor_68_face_landmarks.dat.bz2
+
+Originally from: https://github.com/hay/facetool/blob/master/facetool/faceswap.py
 """
+from typing import List, Optional, Sequence, Tuple
+
 from face_alignment import FaceAlignment, LandmarksType
 from torch.cuda import is_available as is_cuda_available
 import cv2
 import numpy
+
+CV2_IMAGE = numpy.ndarray
+BBox = Tuple[int, int, int, int]
+BBoxes = Sequence[BBox]
 
 BLUR_AMOUNT = 2.2
 FEATHER_AMOUNT = 35
@@ -77,7 +85,7 @@ def prepare_transformation_points(points: numpy.ndarray):
     points /= std
     return points, mean, std
 
-def transformation_from_points(points1, points2):
+def transformation_from_points(points1, points2) -> numpy.ndarray:
     """
     Return an affine transformation [s * R | T] such that:
         sum ||s*R*p1,i + T - p2,i||^2
@@ -168,8 +176,33 @@ class Faceswap:
 
         return landmarks
 
-    def faceswap(self, head, face, head_bboxes=None, face_bboxes=None):
-        '''Inserts the face into the head'''
+    def _get_combined_mask(
+        self,
+        im1: CV2_IMAGE,
+        landmarks1: numpy.matrix,
+        im2: CV2_IMAGE,
+        landmarks2: numpy.matrix,
+        M,
+    ):
+        warped_mask = warp_im(
+            self._get_face_mask(im2, landmarks2),
+            M,
+            im1.shape
+        )
+
+        return numpy.max(
+            [self._get_face_mask(im1, landmarks1), warped_mask],
+            axis=0
+        )
+
+    def faceswap(
+        self,
+        head: CV2_IMAGE,
+        face: CV2_IMAGE,
+        head_bboxes: Optional[BBoxes]=None,
+        face_bboxes: Optional[BBoxes]=None
+    ):
+        '''Inserts the face into the head.'''
         im1 = head
         im2 = face
 
@@ -185,12 +218,8 @@ class Faceswap:
             landmarks1[ALIGN_POINTS], landmarks2[ALIGN_POINTS]
         )
 
-        mask = self._get_face_mask(im2, landmarks2)
-        warped_mask = warp_im(mask, M, im1.shape)
-
-        combined_mask = numpy.max(
-            [self._get_face_mask(im1, landmarks1), warped_mask],
-            axis=0
+        combined_mask = self._get_combined_mask(
+            im1, landmarks1, im2, landmarks2, M
         )
 
         warped_im2 = warp_im(im2, M, im1.shape)
