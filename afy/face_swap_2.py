@@ -112,14 +112,15 @@ def transformation_from_points(points1, points2) -> numpy.ndarray:
                          numpy.matrix([0., 0., 1.])])
 
 class Faceswap:
-    def __init__(self, feather=FEATHER_AMOUNT, blur=BLUR_AMOUNT):
-        self.blur = blur
-        self.aligner = FaceAlignment(
-            LandmarksType._2D,
-            device='cuda' if is_cuda_available() else 'cpu',
-            face_detector='blazeface',
-        )
+    def __init__(
+        self,
+        aligner: FaceAlignment,
+        feather=FEATHER_AMOUNT,
+        blur=BLUR_AMOUNT
+    ):
+        self.aligner = aligner
         self.feather = feather
+        self.blur = blur
         self.overlay_points = [EYES_BROWS_POINTS, NOSE_MOUTH_POINTS]
         self.landmark_hashes = {}
 
