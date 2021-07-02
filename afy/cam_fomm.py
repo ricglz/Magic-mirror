@@ -263,9 +263,7 @@ if __name__ == "__main__":
                 break
 
             frame = frame[..., ::-1]
-            frame_orig = frame.copy()
-
-            frame = resize(frame, (IMG_SIZE, IMG_SIZE))[..., :3]
+            frame = resize(frame, (IMG_SIZE, IMG_SIZE))
 
             if find_keyframe:
                 if is_new_frame_better(frame, predictor):

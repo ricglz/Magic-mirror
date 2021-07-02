@@ -76,7 +76,7 @@ class PredictorLocal:
         bbox: BBox,
         modified_face: torch.Tensor
     ):
-        cv2_modified_face = pil_to_cv2(to_pil_image(modified_face))
+        cv2_modified_face = pil_to_cv2(to_pil_image(modified_face))[...,::-1]
         return self.face_swapper.faceswap(source, cv2_modified_face, [bbox])
 
     @torch.no_grad()
