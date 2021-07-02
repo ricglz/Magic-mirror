@@ -2,16 +2,19 @@ import multiprocessing as mp
 import queue
 import traceback
 
+import cv2
+import msgpack
+import msgpack_numpy as m
+import numpy as np
+import torch
+import zmq
+torch.multiprocessing.set_start_method('spawn')
+
 from arguments import opt
 from networking import SerializingContext
 from predictor_local import PredictorLocal
 from utils import Logger, TicToc, AccumDict, Once
 
-import cv2
-import numpy as np
-import zmq
-import msgpack
-import msgpack_numpy as m
 m.patch()
 
 PUT_TIMEOUT = 1
