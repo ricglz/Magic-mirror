@@ -12,12 +12,6 @@ from afy.magic_mirror import MagicMirror
 from articulated.animate import get_animation_region_params
 from articulated.demo import load_checkpoints
 
-# aligner = object()
-aligner = FaceAlignment(
-    LandmarksType._2D,
-    face_detector='blazeface',
-)
-
 def to_tensor(a: np.ndarray):
     '''Creates tensor of numpy array of an image'''
     return torch.tensor(a[np.newaxis].astype(np.float32)).permute(0, 3, 1, 2)
@@ -39,7 +33,7 @@ def extract_face(image: Image.Image, box: BBox) -> Image.Image:
     return image.crop(box).resize((256, 256))
 
 @torch.no_grad()
-def get_face(image_numpy: CV2Image):
+def get_face(image_numpy: CV2Image, aligner: FaceAlignment):
     color_img = cv2.cvtColor(image_numpy, cv2.COLOR_BGR2RGB)
     bbox = aligner.face_detector.detect_from_image(color_img.copy())[0]
     pil_image = Image.fromarray(color_img)
@@ -56,7 +50,13 @@ class PredictorLocal:
         self.driving = None
         self.driving_region_params = None
         self.magic_mirror = MagicMirror()
-        self.face_swapper = Faceswap(aligner)
+        self.aligner = FaceAlignment(
+            LandmarksType._2D,
+            device='cuda' if torch.cuda.is_available() else 'cpu',
+            face_detector='blazeface',
+        )
+
+        self.face_swapper = Faceswap(self.aligner)
 
     def reset_frames(self):
         pass
@@ -64,7 +64,7 @@ class PredictorLocal:
     @torch.no_grad()
     def set_source_image(self, source_image: CV2Image):
         self.magic_mirror.reset_tic()
-        self.driving = get_face(source_image)[0].to(self.device)
+        self.driving = get_face(source_image, self.aligner)[0].to(self.device)
         self.driving_region_params = self.region_predictor(self.driving)
 
     @torch.no_grad()
