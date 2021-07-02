@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
-
-from enum import Enum
+from enum import IntEnum
 from random import random
 
 from afy.utils import TicToc
 
-class State(Enum):
+class State(IntEnum):
     '''State of the MagicMirror class to know how much to wait'''
     WAIT_LONG = 0
     WAIT_SHORT = 1
