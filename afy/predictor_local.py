@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 import torch
 
-from afy.face_swap_2 import Faceswap
+from afy.face_swap import Faceswap
 from afy.magic_mirror import MagicMirror
 from articulated.animate import get_animation_region_params
 from articulated.demo import load_checkpoints
