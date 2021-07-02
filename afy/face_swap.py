@@ -33,7 +33,7 @@ from face_alignment import FaceAlignment
 import cv2
 import numpy
 
-from custom_typings import CV2Image, BBoxes
+from afy.custom_typings import CV2Image, BBoxes
 
 BLUR_AMOUNT = 2.2
 FEATHER_AMOUNT = 35

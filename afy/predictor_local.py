@@ -26,6 +26,8 @@ def pil_to_cv2(img: Image.Image) -> CV2Image:
 
 def extract_face(image: Image.Image, box: BBox) -> Image.Image:
     margin = 25
+    if isinstance(box, np.ndarray):
+        box = box[:4]
     box[0] -= margin
     box[1] -= margin
     box[2] += margin

@@ -1,9 +1,16 @@
-import cv2
+from face_alignment import FaceAlignment, LandmarksType
 from tqdm import tqdm
+import cv2
+import torch
 
-from afy.face_swap_2 import Faceswap
+from afy.face_swap import Faceswap
 
-swapper = Faceswap()
+aligner = FaceAlignment(
+    LandmarksType._2D,
+    device='cuda' if torch.cuda.is_available() else 'cpu',
+    face_detector='blazeface',
+)
+swapper = Faceswap(aligner)
 
 def annotate_landmarks(im, landmarks):
     im = im.copy()
