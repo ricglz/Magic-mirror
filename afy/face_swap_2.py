@@ -148,7 +148,7 @@ class Faceswap:
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         return self.aligner.face_detector.detect_from_image(img)
 
-    def _get_landmarks(self, img):
+    def _get_landmarks(self, img, bboxes=None):
         # This is by far the slowest part of the whole algorithm, so we
         # cache the landmarks if the image is the same, especially when
         # dealing with videos this makes things twice as fast
@@ -158,7 +158,8 @@ class Faceswap:
             return self.landmark_hashes[img_hash]
 
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        points = self.aligner.get_landmarks(img)[0].astype(int)
+        points = self.aligner.get_landmarks_from_image(img, bboxes)
+        points = points[0].astype(int)
 
         landmarks = numpy.matrix([[p[0], p[1]] for p in points])
 
@@ -167,14 +168,14 @@ class Faceswap:
 
         return landmarks
 
-    def faceswap(self, head, face):
+    def faceswap(self, head, face, head_bboxes=None, face_bboxes=None):
         '''Inserts the face into the head'''
         im1 = head
         im2 = face
 
         try:
-            landmarks1 = self._get_landmarks(head)
-            landmarks2 = self._get_landmarks(face)
+            landmarks1 = self._get_landmarks(head, head_bboxes)
+            landmarks2 = self._get_landmarks(face, face_bboxes)
         except ValueError:
             return im1
 
