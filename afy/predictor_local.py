@@ -81,7 +81,7 @@ class PredictorLocal:
 
     @torch.no_grad()
     def _predict(self, driving_frame: CV2Image):
-        source, bbox = get_face(driving_frame)
+        source, bbox = get_face(driving_frame, self.aligner)
 
         source_region_params = self.region_predictor(source)
 
