@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 import torch
 
+from afy.custom_typings import BBox, CV2Image
 from afy.face_swap import Faceswap
 from afy.magic_mirror import MagicMirror
 from articulated.animate import get_animation_region_params
@@ -25,11 +26,11 @@ def to_numpy(img: Image.Image) -> np.ndarray:
     '''Converts pil image to numpy representation.'''
     return np.array(img) / 255
 
-def pil_to_cv2(img: Image.Image):
+def pil_to_cv2(img: Image.Image) -> CV2Image:
     '''Converts pil image to a cv2 image'''
     return cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
 
-def extract_face(image: Image.Image, box) -> Image.Image:
+def extract_face(image: Image.Image, box: BBox) -> Image.Image:
     margin = 25
     box[0] -= margin
     box[1] -= margin
@@ -38,7 +39,7 @@ def extract_face(image: Image.Image, box) -> Image.Image:
     return image.crop(box).resize((256, 256))
 
 @torch.no_grad()
-def get_face(image_numpy: np.ndarray):
+def get_face(image_numpy: CV2Image):
     color_img = cv2.cvtColor(image_numpy, cv2.COLOR_BGR2RGB)
     bbox = aligner.face_detector.detect_from_image(color_img.copy())[0]
     pil_image = Image.fromarray(color_img)
@@ -61,18 +62,23 @@ class PredictorLocal:
         pass
 
     @torch.no_grad
-    def set_source_image(self, source_image):
+    def set_source_image(self, source_image: CV2Image):
         self.magic_mirror.reset_tic()
         self.driving = get_face(source_image)[0].to(self.device)
         self.driving_region_params = self.region_predictor(self.driving)
 
     @torch.no_grad
-    def _face_swap(self, source, bbox, modified_face: torch.Tensor):
+    def _face_swap(
+        self,
+        source: CV2Image,
+        bbox: BBox,
+        modified_face: torch.Tensor
+    ):
         cv2_modified_face = pil_to_cv2(to_pil_image(modified_face))
         return self.face_swapper.faceswap(source, cv2_modified_face, [bbox])
 
     @torch.no_grad
-    def _predict(self, driving_frame: np.ndarray):
+    def _predict(self, driving_frame: CV2Image):
         source, bbox = get_face(driving_frame)
 
         source_region_params = self.region_predictor(source)
@@ -96,7 +102,7 @@ class PredictorLocal:
 
         return out
 
-    def predict(self, driving_frame: np.ndarray):
+    def predict(self, driving_frame: CV2Image):
         assert self.driving_region_params is not None, "call set_source_image()"
 
         if self.magic_mirror.should_predict():

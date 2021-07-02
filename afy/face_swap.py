@@ -27,16 +27,13 @@ sourceforge:
 
 Originally from: https://github.com/hay/facetool/blob/master/facetool/faceswap.py
 """
-from typing import List, Optional, Sequence, Tuple
+from typing import Optional
 
-from face_alignment import FaceAlignment, LandmarksType
-from torch.cuda import is_available as is_cuda_available
+from face_alignment import FaceAlignment
 import cv2
 import numpy
 
-CV2_IMAGE = numpy.ndarray
-BBox = Tuple[int, int, int, int]
-BBoxes = Sequence[BBox]
+from custom_typings import CV2Image, BBoxes
 
 BLUR_AMOUNT = 2.2
 FEATHER_AMOUNT = 35
@@ -179,9 +176,9 @@ class Faceswap:
 
     def _get_combined_mask(
         self,
-        im1: CV2_IMAGE,
+        im1: CV2Image,
         landmarks1: numpy.matrix,
-        im2: CV2_IMAGE,
+        im2: CV2Image,
         landmarks2: numpy.matrix,
         M,
     ):
@@ -198,8 +195,8 @@ class Faceswap:
 
     def faceswap(
         self,
-        head: CV2_IMAGE,
-        face: CV2_IMAGE,
+        head: CV2Image,
+        face: CV2Image,
         head_bboxes: Optional[BBoxes]=None,
         face_bboxes: Optional[BBoxes]=None
     ):
