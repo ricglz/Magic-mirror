@@ -41,7 +41,7 @@ LEFT_BROW_POINTS = list(range(22, 27))
 NOSE_POINTS = list(range(27, 36))
 RIGHT_EYE_POINTS = list(range(36, 42))
 LEFT_EYE_POINTS = list(range(42, 48))
-MOUTH_POINTS = list(range(48, 61))
+MOUTH_POINTS = list(range(48, 68))
 
 EYES_BROWS_POINTS = (
     RIGHT_BROW_POINTS +
