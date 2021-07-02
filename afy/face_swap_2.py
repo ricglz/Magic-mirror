@@ -25,8 +25,10 @@ Python bindings, and OpenCV. You'll also need to obtain the trained model from
 sourceforge:
     http://sourceforge.net/projects/dclib/files/dlib/v18.10/shape_predictor_68_face_landmarks.dat.bz2
 """
+from face_alignment import FaceAlignment, LandmarksType
 from facenet_pytorch import MTCNN
 from PIL import Image
+from torch.cuda import is_available as is_cuda_available
 import cv2
 import dlib
 import numpy
@@ -107,15 +109,16 @@ def transformation_from_points(points1, points2):
 class Faceswap:
     def __init__(
         self,
-        predictor_path='./shape_predictor_68_face_landmarks.dat',
         feather=FEATHER_AMOUNT,
         blur=BLUR_AMOUNT,
     ):
-        self.predictor_path = predictor_path
         self.blur = blur
-        self.mtcnn = MTCNN()
+        self.aligner = FaceAlignment(
+            LandmarksType._2D,
+            device='cuda' if is_cuda_available() else 'cpu',
+            face_detector='blazeface',
+        )
         self.feather = feather
-        self.predictor = dlib.shape_predictor(self.predictor_path)
         self.overlay_points = [EYES_BROWS_POINTS, NOSE_MOUTH_POINTS]
         self.landmark_hashes = {}
 
@@ -149,9 +152,8 @@ class Faceswap:
         return img
 
     def _get_bboxes(self, img):
-        pil_image = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-        boxes = self.mtcnn.detect(pil_image)[0]
-        return [parse_bbox(bbox) for bbox in boxes]
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        return self.aligner.face_detector.detect_from_image(img)
 
     def _get_landmarks(self, img):
         # This is by far the slowest part of the whole algorithm, so we
@@ -162,14 +164,10 @@ class Faceswap:
         if img_hash in self.landmark_hashes:
             return self.landmark_hashes[img_hash]
 
-        rects = self._get_bboxes(img)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        points = self.aligner.get_landmarks(img)[0].astype(int)
 
-        if len(rects) != 1:
-            raise ValueError('There should be one face in the image')
-
-        landmarks = numpy.matrix([
-            [p.x, p.y] for p in self.predictor(img, rects[0]).parts()
-        ])
+        landmarks = numpy.matrix([[p[0], p[1]] for p in points])
 
         # Save to image cache
         self.landmark_hashes[img_hash] = landmarks

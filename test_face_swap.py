@@ -1,5 +1,5 @@
 import cv2
-# from tqdm import tqdm
+from tqdm import tqdm
 
 from afy.face_swap_2 import Faceswap
 
@@ -31,16 +31,29 @@ def annotate_img():
     # annotated_img = annotate_bboxes(img_1, bboxes)
     annotated_img = annotate_landmarks(img_1, landmarks)
 
-    cv2.imshow('img_1', annotated_img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    cv2.imwrite('68_landmarks_mtcnn.jpg', annotated_img)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
 
 def swap_imgs():
-    img_1 = cv2.imread('./avatars/opened_eyes.jpg')
+    img_1 = cv2.imread('./avatars/swap_opened_eyes.jpg')
     img_2 = cv2.imread('./avatars/closed_eyes.jpg')
 
     swapped = swapper.faceswap(img_1, img_2)
-    cv2.imwrite('swapped_face_2.jpg', swapped)
+    cv2.imwrite(f'swapped_face_2.jpg', swapped)
+
+def tune_blur_feather_swap():
+    img_1 = cv2.imread('./avatars/opened_eyes.jpg')
+    img_2 = cv2.imread('./avatars/closed_eyes.jpg')
+
+    max_blur = 100
+    for idx, blur in tqdm(enumerate(range(15, max_blur))):
+        # desc = f'Running {idx + 1}'
+        feather = 35
+        # for feather in tqdm(range(15, 37, 2), desc):
+        swapper = Faceswap(blur=blur / 10, feather=feather)
+        swapped = swapper.faceswap(img_1, img_2)
+        cv2.imwrite(f'swapped_face_{blur}_{feather}.jpg', swapped)
 
 def main():
     swap_imgs()
