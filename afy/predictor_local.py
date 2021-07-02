@@ -100,7 +100,7 @@ class PredictorLocal:
         )['prediction'][0]
         # out = modified_face
 
-        out = self._face_swap(source, bbox, modified_face)
+        out = self._face_swap(driving_frame, bbox, modified_face)
 
         return out
 
