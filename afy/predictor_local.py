@@ -12,11 +12,12 @@ from afy.magic_mirror import MagicMirror
 from articulated.animate import get_animation_region_params
 from articulated.demo import load_checkpoints
 
-aligner = FaceAlignment(
-    LandmarksType._2D,
-    device='cuda' if torch.cuda.is_available() else 'cpu',
-    face_detector='blazeface',
-)
+aligner = object()
+# aligner = FaceAlignment(
+#     LandmarksType._2D,
+#     device='cuda' if torch.cuda.is_available() else 'cpu',
+#     face_detector='blazeface',
+# )
 
 def to_tensor(a: np.ndarray):
     '''Creates tensor of numpy array of an image'''

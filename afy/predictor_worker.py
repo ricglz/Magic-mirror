@@ -6,9 +6,7 @@ import cv2
 import msgpack
 import msgpack_numpy as m
 import numpy as np
-import torch
 import zmq
-torch.multiprocessing.set_start_method('spawn')
 
 from arguments import opt
 from networking import SerializingContext
