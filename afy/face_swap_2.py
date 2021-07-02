@@ -26,11 +26,8 @@ sourceforge:
     http://sourceforge.net/projects/dclib/files/dlib/v18.10/shape_predictor_68_face_landmarks.dat.bz2
 """
 from face_alignment import FaceAlignment, LandmarksType
-from facenet_pytorch import MTCNN
-from PIL import Image
 from torch.cuda import is_available as is_cuda_available
 import cv2
-import dlib
 import numpy
 
 BLUR_AMOUNT = 2.2
@@ -102,16 +99,12 @@ def transformation_from_points(points1, points2):
     # left (with column vectors).
     R = (U * Vt).T
 
-    return numpy.vstack([numpy.hstack(((s2 / s1) * R,
-                                       c2.T - (s2 / s1) * R * c1.T)),
+    s_divide_r = (s2 / s1) * R
+    return numpy.vstack([numpy.hstack((s_divide_r, c2.T - s_divide_r * c1.T)),
                          numpy.matrix([0., 0., 1.])])
 
 class Faceswap:
-    def __init__(
-        self,
-        feather=FEATHER_AMOUNT,
-        blur=BLUR_AMOUNT,
-    ):
+    def __init__(self, feather=FEATHER_AMOUNT, blur=BLUR_AMOUNT):
         self.blur = blur
         self.aligner = FaceAlignment(
             LandmarksType._2D,

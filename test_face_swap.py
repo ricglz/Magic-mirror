@@ -46,14 +46,13 @@ def tune_blur_feather_swap():
     img_1 = cv2.imread('./avatars/opened_eyes.jpg')
     img_2 = cv2.imread('./avatars/closed_eyes.jpg')
 
-    max_blur = 100
-    for idx, blur in tqdm(enumerate(range(15, max_blur))):
-        # desc = f'Running {idx + 1}'
-        feather = 35
-        # for feather in tqdm(range(15, 37, 2), desc):
-        swapper = Faceswap(blur=blur / 10, feather=feather)
-        swapped = swapper.faceswap(img_1, img_2)
-        cv2.imwrite(f'swapped_face_{blur}_{feather}.jpg', swapped)
+    max_blur = 44
+    for idx, blur in tqdm(enumerate(range(11, max_blur))):
+        desc = f'Running {idx + 1}'
+        for feather in tqdm(range(15, 37, 2), desc):
+            swapper = Faceswap(blur=blur / 10, feather=feather)
+            swapped = swapper.faceswap(img_1, img_2)
+            cv2.imwrite(f'swapped_face_{blur}_{feather}.jpg', swapped)
 
 def main():
     swap_imgs()
