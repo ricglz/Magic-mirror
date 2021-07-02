@@ -61,13 +61,13 @@ class PredictorLocal:
     def reset_frames(self):
         pass
 
-    @torch.no_grad
+    @torch.no_grad()
     def set_source_image(self, source_image: CV2Image):
         self.magic_mirror.reset_tic()
         self.driving = get_face(source_image)[0].to(self.device)
         self.driving_region_params = self.region_predictor(self.driving)
 
-    @torch.no_grad
+    @torch.no_grad()
     def _face_swap(
         self,
         source: CV2Image,
@@ -77,7 +77,7 @@ class PredictorLocal:
         cv2_modified_face = pil_to_cv2(to_pil_image(modified_face))
         return self.face_swapper.faceswap(source, cv2_modified_face, [bbox])
 
-    @torch.no_grad
+    @torch.no_grad()
     def _predict(self, driving_frame: CV2Image):
         source, bbox = get_face(driving_frame)
 
