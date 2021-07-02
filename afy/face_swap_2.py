@@ -25,12 +25,15 @@ Python bindings, and OpenCV. You'll also need to obtain the trained model from
 sourceforge:
     http://sourceforge.net/projects/dclib/files/dlib/v18.10/shape_predictor_68_face_landmarks.dat.bz2
 """
+from facenet_pytorch import MTCNN
+from PIL import Image
 import cv2
 import dlib
 import numpy
 
-BLUR_AMOUNT = 1
-FEATHER_AMOUNT = 21
+BLUR_AMOUNT = 2.2
+FEATHER_AMOUNT = 35
+MARGIN = 25
 SCALE_FACTOR = 1
 
 JAW_POINTS = list(range(0, 17))
@@ -100,41 +103,23 @@ def transformation_from_points(points1, points2):
     return numpy.vstack([numpy.hstack(((s2 / s1) * R,
                                        c2.T - (s2 / s1) * R * c1.T)),
                          numpy.matrix([0., 0., 1.])])
+
 class Faceswap:
     def __init__(
         self,
-        predictor_path = './shape_predictor_68_face_landmarks.dat',
-        overlay_eyesbrows = True,
-        overlay_nosemouth = True,
-        only_mouth = False,
-        feather = FEATHER_AMOUNT,
-        blur = BLUR_AMOUNT,
-        ignore_nofaces = False,
-        colour_correct = True
+        predictor_path='./shape_predictor_68_face_landmarks.dat',
+        feather=FEATHER_AMOUNT,
+        blur=BLUR_AMOUNT,
     ):
         self.predictor_path = predictor_path
         self.blur = blur
-        self.detector = dlib.get_frontal_face_detector()
+        self.mtcnn = MTCNN()
         self.feather = feather
         self.predictor = dlib.shape_predictor(self.predictor_path)
-        self.overlay_points = []
+        self.overlay_points = [EYES_BROWS_POINTS, NOSE_MOUTH_POINTS]
         self.landmark_hashes = {}
-        self.ignore_nofaces = ignore_nofaces
-        self.colour_correct = colour_correct
-
-        # TODO: this should be a little bit less messy
-        if only_mouth:
-            self.overlay_points.append(MOUTH_POINTS)
-        else:
-            if overlay_eyesbrows:
-                self.overlay_points.append(EYES_BROWS_POINTS)
-
-            if overlay_nosemouth:
-                self.overlay_points.append(NOSE_MOUTH_POINTS)
 
     def _correct_colours(self, im1, im2, landmarks1):
-        if not self.colour_correct:
-            return im2
         blur_amount = self.blur * numpy.linalg.norm(
                                   numpy.mean(landmarks1[LEFT_EYE_POINTS], axis=0) -
                                   numpy.mean(landmarks1[RIGHT_EYE_POINTS], axis=0))
@@ -163,6 +148,11 @@ class Faceswap:
 
         return img
 
+    def _get_bboxes(self, img):
+        pil_image = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+        boxes = self.mtcnn.detect(pil_image)[0]
+        return [parse_bbox(bbox) for bbox in boxes]
+
     def _get_landmarks(self, img):
         # This is by far the slowest part of the whole algorithm, so we
         # cache the landmarks if the image is the same, especially when
@@ -172,7 +162,7 @@ class Faceswap:
         if img_hash in self.landmark_hashes:
             return self.landmark_hashes[img_hash]
 
-        rects = self.detector(img, 1)
+        rects = self._get_bboxes(img)
 
         if len(rects) != 1:
             raise ValueError('There should be one face in the image')
