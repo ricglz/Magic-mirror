@@ -23,7 +23,7 @@ class MagicMirror():
     @property
     def wait_time(self):
         '''Based on the current state returns how much time to wait'''
-        return WAIT_TIMES[self.state]
+        return WAIT_TIMES[int(self.state)]
 
     @property
     def toc(self):
