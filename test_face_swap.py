@@ -43,7 +43,7 @@ def annotate_img():
     # cv2.destroyAllWindows()
 
 def swap_imgs():
-    img_1 = cv2.imread('./avatars/swap_opened_eyes.jpg')
+    img_1 = cv2.imread('./avatars/opened_eyes.jpg')
     img_2 = cv2.imread('./avatars/closed_eyes.jpg')
 
     swapped = swapper.faceswap(img_1, img_2)
