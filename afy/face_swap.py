@@ -44,9 +44,7 @@ class Faceswap:
 
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         points = self.aligner.get_landmarks_from_image(img, bboxes)
-        points = points[0].astype(int)
-
-        landmarks = numpy.matrix([[p[0], p[1]] for p in points])
+        landmarks = points[0].astype(int)
 
         # Save to image cache
         self.landmark_hashes[img_hash] = landmarks

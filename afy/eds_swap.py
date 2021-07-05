@@ -98,7 +98,7 @@ def draw_convex_hull(img, points, color):
     points = cv2.convexHull(points)
     cv2.fillConvexPoly(img, points, color=color)
 
-def _get_face_mask(img, landmarks):
+def get_face_mask(img, landmarks):
     img = np.zeros(img.shape[:2], dtype=np.float64)
     feather = current_feather
 
@@ -120,13 +120,13 @@ def get_combined_mask(
     M,
 ):
     warped_mask = warp_im(
-        _get_face_mask(im2, landmarks2),
+        get_face_mask(im2, landmarks2),
         M,
         im1.shape
     )
 
     return np.max(
-        [_get_face_mask(im1, landmarks1), warped_mask],
+        [get_face_mask(im1, landmarks1), warped_mask],
         axis=0
     )
 
@@ -155,6 +155,8 @@ def swap_imgs(
     landmarks2: np.ndarray,
 ) -> CV2Image:
     output_im = im1
+    landmarks1 = np.matrix(landmarks1)
+    landmarks2 = np.matrix(landmarks2)
 
     M = transformation_from_points(
         landmarks1[ALIGN_POINTS], landmarks2[ALIGN_POINTS]
