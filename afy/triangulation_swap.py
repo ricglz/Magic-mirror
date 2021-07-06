@@ -6,21 +6,17 @@ import numpy as np
 
 from afy.custom_typings import CV2Image
 
-def extract_index(array: np.ndarray):
-    '''Extracts index'''
-    index = None
-    for num in array[0]:
-        index = num
-        break
-    return index
+def get_index_pt(point: tuple, points: np.ndarray):
+    array = np.where((points == point).all(axis=1))
+    return array[0][0]
 
 def get_delaunay_triangulation(
     landmarks_points: np.ndarray,
     convexhull,
 ):
     '''
-    Gets delaunay triangulation of the given landmarks points
-    in the given convex hull
+    Gets delaunay triangulation of the given landmarks points in the given convex
+    hull
     '''
     rect = cv2.boundingRect(convexhull)
     subdiv = cv2.Subdiv2D(rect)
@@ -30,27 +26,20 @@ def get_delaunay_triangulation(
         points.append(temp)
         subdiv.insert(temp)
     points = np.array(points)
-    triangles = subdiv.getTriangleList()
-    triangles = np.array(triangles, dtype=np.int32)
+    triangles = np.array(subdiv.getTriangleList(), dtype=np.int32)
 
     indexes_triangles = []
     for t in triangles:
-        pt1 = (t[0], t[1])
-        pt2 = (t[2], t[3])
-        pt3 = (t[4], t[5])
-
-        index_pt1 = np.where((points == pt1).all(axis=1))
-        index_pt1 = extract_index(index_pt1)
-
-        index_pt2 = np.where((points == pt2).all(axis=1))
-        index_pt2 = extract_index(index_pt2)
-
-        index_pt3 = np.where((points == pt3).all(axis=1))
-        index_pt3 = extract_index(index_pt3)
-
-        if index_pt1 is not None and index_pt2 is not None and index_pt3 is not None:
-            triangle = [index_pt1, index_pt2, index_pt3]
-            indexes_triangles.append(triangle)
+        index_pt1 = get_index_pt((t[0], t[1]), points)
+        if index_pt1 is None:
+            continue
+        index_pt2 = get_index_pt((t[2], t[3]), points)
+        if index_pt2 is None:
+            continue
+        index_pt3 = get_index_pt((t[4], t[5]), points)
+        if index_pt3 is None:
+            continue
+        indexes_triangles.append([index_pt1, index_pt2, index_pt3])
 
     return indexes_triangles
 
