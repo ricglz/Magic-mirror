@@ -154,6 +154,7 @@ def swap_imgs(
     landmarks1: np.ndarray,
     landmarks2: np.ndarray,
 ) -> CV2Image:
+    '''Swap the images using their corresponding landmarks'''
     output_im = im1
     landmarks1 = np.matrix(landmarks1)
     landmarks2 = np.matrix(landmarks2)
