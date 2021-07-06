@@ -32,15 +32,15 @@ def annotate_bboxes(im, bboxes):
 
 def annotate_img():
     img_1 = cv2.imread('./avatars/opened_eyes.jpg')
-    # bboxes = swapper._get_bboxes(img_1)
-    landmarks = swapper._get_landmarks(img_1)
+    bboxes = swapper.get_bboxes(img_1)
+    landmarks = swapper.get_landmarks(img_1)
 
-    # annotated_img = annotate_bboxes(img_1, bboxes)
+    annotated_img = annotate_bboxes(img_1, bboxes)
     annotated_img = annotate_landmarks(img_1, landmarks)
 
     cv2.imwrite('68_landmarks_mtcnn.jpg', annotated_img)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
 def swap_imgs():
     img_1 = cv2.imread('./avatars/opened_eyes.jpg')
@@ -57,7 +57,7 @@ def tune_blur_feather_swap():
     for idx, blur in tqdm(enumerate(range(11, max_blur))):
         desc = f'Running {idx + 1}'
         for feather in tqdm(range(15, 37, 2), desc):
-            swapper = Faceswap(blur=blur / 10, feather=feather)
+            swapper = Faceswap(aligner, blur=blur / 10, feather=feather)
             swapped = swapper.faceswap(img_1, img_2)
             cv2.imwrite(f'swapped_face_{blur}_{feather}.jpg', swapped)
 
