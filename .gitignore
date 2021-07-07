@@ -3,6 +3,8 @@ cam.yaml
 *.pth*
 *.jpg
 *.dat
+*.mp4
+*.avi
 
 __pycache__
 

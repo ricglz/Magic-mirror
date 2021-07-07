@@ -61,8 +61,28 @@ def tune_blur_feather_swap():
             swapped = swapper.faceswap(img_1, img_2)
             cv2.imwrite(f'swapped_face_{blur}_{feather}.jpg', swapped)
 
+def frame_iter(capture, description):
+    def _iterator():
+        while capture.grab():
+            yield capture.retrieve()[1]
+    return tqdm(
+        _iterator(),
+        desc=description,
+        total=int(capture.get(cv2.CAP_PROP_FRAME_COUNT)),
+        position=1,
+    )
+
+def swap_video():
+    cap = cv2.VideoCapture('./test-video.mp4')
+    img_2 = cv2.imread('./avatars/closed_eyes.jpg')
+    for idx, frame in enumerate(frame_iter(cap, 'Face-swapping video')):
+        swapped = swapper.faceswap(frame, img_2)
+        cv2.imwrite(f'results/{idx:08}.jpg', swapped)
+
+    cap.release()
+
 def main():
-    swap_imgs()
+    swap_video()
 
 if __name__ == "__main__":
     main()
