@@ -22,7 +22,7 @@ class Faceswap:
     def __init__(
         self,
         aligner: FaceAlignment,
-        swap_method = SwapMethod.TRIANGULATION,
+        swap_method = SwapMethod.EDS,
         feather=35,
         blur=2.2
     ):

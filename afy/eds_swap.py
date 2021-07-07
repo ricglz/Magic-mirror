@@ -130,9 +130,7 @@ def get_combined_mask(
         axis=0
     )
 
-def correct_colours(im1, im2, landmarks1):
-    '''Correct the color of the new face based on the blur quantity'''
-    blur = current_blur
+def get_im_blur(im1, im2, landmarks1, blur):
     blur_amount = blur * np.linalg.norm(
                          np.mean(landmarks1[LEFT_EYE_POINTS], axis=0) -
                          np.mean(landmarks1[RIGHT_EYE_POINTS], axis=0))
@@ -144,6 +142,12 @@ def correct_colours(im1, im2, landmarks1):
 
     # Avoid divide-by-zero errors.
     im2_blur += (128 * (im2_blur <= 1.0)).astype(im2_blur.dtype)
+
+    return im1_blur, im2_blur
+
+def correct_colours(im1, im2, landmarks1):
+    '''Correct the color of the new face based on the blur quantity'''
+    im1_blur, im2_blur = get_im_blur(im1, im2, landmarks1, current_blur)
 
     return (im2.astype(np.float64) * im1_blur.astype(np.float64) /
                                      im2_blur.astype(np.float64))
