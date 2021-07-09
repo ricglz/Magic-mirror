@@ -1,0 +1,21 @@
+JAW_POINTS = list(range(0, 17))
+RIGHT_BROW_POINTS = list(range(17, 22))
+LEFT_BROW_POINTS = list(range(22, 27))
+NOSE_POINTS = list(range(27, 36))
+RIGHT_EYE_POINTS = list(range(36, 42))
+LEFT_EYE_POINTS = list(range(42, 48))
+MOUTH_POINTS = list(range(48, 68))
+
+EYES_BROWS_POINTS = (
+    RIGHT_BROW_POINTS +
+    LEFT_BROW_POINTS +
+    RIGHT_EYE_POINTS +
+    LEFT_EYE_POINTS
+)
+
+NOSE_MOUTH_POINTS = NOSE_POINTS + MOUTH_POINTS
+
+# Points used to line up the images.
+ALIGN_POINTS = JAW_POINTS + EYES_BROWS_POINTS + NOSE_MOUTH_POINTS
+
+overlay_points = [EYES_BROWS_POINTS, NOSE_MOUTH_POINTS]
