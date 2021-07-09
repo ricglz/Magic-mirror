@@ -3,14 +3,14 @@ from tqdm import tqdm
 import cv2
 import torch
 
-from afy.face_swap import Faceswap
+from afy.face_swap import Faceswap, SwapMethod
 
 aligner = FaceAlignment(
     LandmarksType._2D,
     device='cuda' if torch.cuda.is_available() else 'cpu',
     face_detector='blazeface',
 )
-swapper = Faceswap(aligner)
+swapper = Faceswap(aligner, SwapMethod.TRIANGULATION)
 
 def annotate_landmarks(im, landmarks):
     im = im.copy()
@@ -82,7 +82,7 @@ def swap_video():
     cap.release()
 
 def main():
-    swap_video()
+    swap_imgs()
 
 if __name__ == "__main__":
     main()
