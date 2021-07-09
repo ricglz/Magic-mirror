@@ -6,16 +6,17 @@ from typing import Optional
 
 from face_alignment import FaceAlignment
 import cv2
-import numpy
 
 from afy.custom_typings import CV2Image, BBoxes
 from afy.eds_swap import get_swap_function as get_eds_function
 from afy.triangulation_swap import swap_imgs as triangulation_swap
+from afy.poisson_swap import swap_imgs as poisson_swap
 
 class SwapMethod(Enum):
     '''Enum to organize the swap methods for faces'''
     EDS = 'EDS'
     TRIANGULATION = 'TRIANGULATION'
+    POISSON = 'POISSON'
 
 class Faceswap:
     '''Face swap function'''
@@ -32,6 +33,8 @@ class Faceswap:
             self.swap_function = get_eds_function(blur, feather)
         elif swap_method == SwapMethod.TRIANGULATION:
             self.swap_function = triangulation_swap
+        elif swap_method == SwapMethod.POISSON:
+            self.swap_function = poisson_swap
 
     def get_bboxes(self, img):
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)

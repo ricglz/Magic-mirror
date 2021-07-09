@@ -6,6 +6,7 @@ import numpy as np
 from scipy import spatial
 
 from afy.eds_swap import get_im_blur
+from afy.custom_typings import CV2Image
 
 COLOUR_CORRECT_BLUR_FRAC = 0.75
 CORRECT_COLOR = True
@@ -261,3 +262,24 @@ def face_swap(src_face, dst_face, src_points, dst_points, dst_shape, dst_img):
     mask = cv2.erode(mask, kernel, iterations=1)
 
     return get_output(mask, warped_src_face, dst_face, dst_shape, dst_img)
+
+def parse_data(im, points, r=10):
+    im_w, im_h = im.shape[:2]
+    left, top = np.min(points, 0)
+    right, bottom = np.max(points, 0)
+
+    x, y = max(0, left - r), max(0, top - r)
+    w, h = min(right + r, im_h) - x, min(bottom + r, im_w) - y
+
+    return points - np.asarray([[x, y]]), (x, y, w, h), im[y:y + h, x:x + w]
+
+def swap_imgs(
+    im1: CV2Image,
+    im2: CV2Image,
+    landmarks1: np.ndarray,
+    landmarks2: np.ndarray,
+) -> CV2Image:
+    dst_points, dst_shape, dst_face = parse_data(im1, landmarks1)
+    src_points, _, src_face = parse_data(im2, landmarks2)
+
+    return face_swap(src_face, dst_face, src_points, dst_points, dst_shape, im1)
