@@ -94,8 +94,8 @@ def get_im_blur(im1, im2, landmarks1, blur):
 
 @dataclass
 class EDSSwapper(Swapper):
-    blur = 2.2
-    feather = 35
+    blur: float = 2.2
+    feather: int = 35
 
     def _get_face_mask(self, img: CV2Image, landmarks: np.ndarray):
         img = np.zeros(img.shape[:2], dtype=np.float64)

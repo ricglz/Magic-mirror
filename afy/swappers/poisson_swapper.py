@@ -167,11 +167,11 @@ def parse_data(im, points, r=10):
 
 @dataclass
 class PoissonSwapper(Swapper):
-    blur = 0.75
-    correct_color = True
-    end = 48
-    radius = 10
-    warp_2d = True
+    blur: float = 1.5
+    correct_color: bool = True
+    end: int = 54
+    radius: int = 5
+    warp_2d: float = True
 
     def _mask_from_points(self, size, points, erode_flag=1):
         kernel = np.ones((self.radius, self.radius), np.uint8)

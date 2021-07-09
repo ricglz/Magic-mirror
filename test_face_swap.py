@@ -10,7 +10,8 @@ aligner = FaceAlignment(
     device='cuda' if torch.cuda.is_available() else 'cpu',
     face_detector='blazeface',
 )
-swapper = Faceswap(aligner, SwapMethod.TRIANGULATION)
+get_face_swap = lambda **kwargs: Faceswap(aligner, SwapMethod.POISSON, **kwargs)
+swapper = get_face_swap()
 
 def annotate_landmarks(im, landmarks):
     im = im.copy()
@@ -49,17 +50,16 @@ def swap_imgs():
     swapped = swapper.faceswap(img_1, img_2)
     cv2.imwrite(f'swapped_face_2.jpg', swapped)
 
-def tune_blur_feather_swap():
+def tune():
     img_1 = cv2.imread('./avatars/opened_eyes.jpg')
     img_2 = cv2.imread('./avatars/closed_eyes.jpg')
 
-    max_blur = 44
-    for idx, blur in tqdm(enumerate(range(11, max_blur))):
-        desc = f'Running {idx + 1}'
-        for feather in tqdm(range(15, 37, 2), desc):
-            swapper = Faceswap(aligner, blur=blur / 10, feather=feather)
-            swapped = swapper.faceswap(img_1, img_2)
-            cv2.imwrite(f'swapped_face_{blur}_{feather}.jpg', swapped)
+    for blur in tqdm(range(50, 100, 5)):
+        swapper = get_face_swap(
+            blur=blur / 100,
+        )
+        swapped = swapper.faceswap(img_1, img_2)
+        cv2.imwrite(f'tuning/{blur}.jpg', swapped)
 
 def frame_iter(capture, description):
     def _iterator():
@@ -77,6 +77,14 @@ def swap_video():
     img_2 = cv2.imread('./avatars/closed_eyes.jpg')
     for idx, frame in enumerate(frame_iter(cap, 'Face-swapping video')):
         swapped = swapper.faceswap(frame, img_2)
+        cv2.imwrite(f'results/{idx:08}.jpg', swapped)
+
+    cap.release()
+
+def swap_video_same():
+    cap = cv2.VideoCapture('./test-video-same.mp4')
+    for idx, frame in enumerate(frame_iter(cap, 'Face-swapping video')):
+        swapped = swapper.faceswap(frame, frame)
         cv2.imwrite(f'results/{idx:08}.jpg', swapped)
 
     cap.release()
