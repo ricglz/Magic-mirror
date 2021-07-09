@@ -1,3 +1,6 @@
+"""
+Inspired from https://github.com/oriolbernal/face-swap/blob/master/face_swap.py
+"""
 import cv2
 import numpy as np
 
