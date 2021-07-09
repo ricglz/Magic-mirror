@@ -153,6 +153,8 @@ def get_output(mask, warped_src_face, dst_face, dst_shape, dst_img):
     dst_img_cp = dst_img.copy()
     dst_img_cp[y:y + h, x:x + w] = output
 
+    return dst_img_cp
+
 def parse_data(im, points, r=10):
     im_w, im_h = im.shape[:2]
     left, top = np.min(points, 0)

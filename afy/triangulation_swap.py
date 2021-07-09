@@ -131,6 +131,7 @@ def change_face(img: CV2Image, convexhull, new_face: CV2Image):
     return seamlessclone
 
 def swap_imgs(
+    self,
     im1: CV2Image,
     im2: CV2Image,
     landmarks1: np.ndarray,

@@ -274,6 +274,7 @@ def parse_data(im, points, r=10):
     return points - np.asarray([[x, y]]), (x, y, w, h), im[y:y + h, x:x + w]
 
 def swap_imgs(
+    self,
     im1: CV2Image,
     im2: CV2Image,
     landmarks1: np.ndarray,

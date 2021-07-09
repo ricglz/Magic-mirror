@@ -1,40 +1,35 @@
 """
 Originally from: https://github.com/hay/facetool/blob/master/facetool/faceswap.py
 """
-from enum import Enum
+from enum import IntEnum
 from typing import Optional
 
 from face_alignment import FaceAlignment
 import cv2
 
 from afy.custom_typings import CV2Image, BBoxes
-from afy.eds_swap import get_swap_function as get_eds_function
-from afy.triangulation_swap import swap_imgs as triangulation_swap
-from afy.poisson_swap import swap_imgs as poisson_swap
+from afy.swappers import *
 
-class SwapMethod(Enum):
+class SwapMethod(IntEnum):
     '''Enum to organize the swap methods for faces'''
-    EDS = 'EDS'
-    TRIANGULATION = 'TRIANGULATION'
-    POISSON = 'POISSON'
+    EDS = 0
+    TRIANGULATION = 1
+    POISSON = 2
 
 class Faceswap:
     '''Face swap function'''
+    available_swappers = [EDSSwapper, TriangulationSwapper, PoissonSwapper]
+
     def __init__(
         self,
         aligner: FaceAlignment,
         swap_method = SwapMethod.EDS,
-        feather=35,
-        blur=2.2
+        **kwargs,
     ):
         self.aligner = aligner
         self.landmark_hashes = {}
-        if swap_method == SwapMethod.EDS:
-            self.swap_function = get_eds_function(blur, feather)
-        elif swap_method == SwapMethod.TRIANGULATION:
-            self.swap_function = triangulation_swap
-        elif swap_method == SwapMethod.POISSON:
-            self.swap_function = poisson_swap
+        cls = self.available_swappers[int(swap_method)]
+        self.swapper: Swapper = cls(**kwargs)
 
     def get_bboxes(self, img):
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -72,5 +67,5 @@ class Faceswap:
         except ValueError:
             return head
 
-        out = self.swap_function(head, face, landmarks1, landmarks2)
+        out = self.swapper.swap_imgs(head, face, landmarks1, landmarks2)
         return out.astype(int)
