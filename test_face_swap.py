@@ -1,4 +1,5 @@
 from face_alignment import FaceAlignment, LandmarksType
+from threaded_cv2.video_reader import VideoCapture
 from tqdm import tqdm
 import cv2
 import torch
@@ -61,36 +62,28 @@ def tune():
         swapped = swapper.faceswap(img_1, img_2)
         cv2.imwrite(f'tuning/{blur}.jpg', swapped)
 
-def frame_iter(capture, description):
-    def _iterator():
-        while capture.grab():
-            yield capture.retrieve()[1]
+def frame_iter(capture: VideoCapture, description: str):
     return tqdm(
-        _iterator(),
+        capture,
         desc=description,
-        total=int(capture.get(cv2.CAP_PROP_FRAME_COUNT)),
-        position=1,
+        total=capture.end_frame,
     )
 
 def swap_video():
-    cap = cv2.VideoCapture('./test-video.mp4')
     img_2 = cv2.imread('./avatars/closed_eyes.jpg')
-    for idx, frame in enumerate(frame_iter(cap, 'Face-swapping video')):
-        swapped = swapper.faceswap(frame, img_2)
-        cv2.imwrite(f'results/{idx:08}.jpg', swapped)
-
-    cap.release()
+    with VideoCapture('./test-video.mp4') as cap:
+        for idx, frame in enumerate(frame_iter(cap, 'Face-swapping video')):
+            swapped = swapper.faceswap(frame, img_2)
+            cv2.imwrite(f'results/{idx:08}.jpg', swapped)
 
 def swap_video_same():
-    cap = cv2.VideoCapture('./test-video-same.mp4')
-    for idx, frame in enumerate(frame_iter(cap, 'Face-swapping video')):
-        swapped = swapper.faceswap(frame, frame)
-        cv2.imwrite(f'results/{idx:08}.jpg', swapped)
-
-    cap.release()
+    with VideoCapture('./test-video.mp4') as cap:
+        for idx, frame in enumerate(frame_iter(cap, 'Face-swapping video')):
+            swapped = swapper.faceswap(frame, frame)
+            cv2.imwrite(f'results/{idx:08}.jpg', swapped)
 
 def main():
-    swap_imgs()
+    swap_video_same()
 
 if __name__ == "__main__":
     main()
