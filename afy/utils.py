@@ -5,6 +5,9 @@ import time
 import numpy as np
 import cv2
 
+def hash_numpy_array(array: np.ndarray):
+    return str(abs(hash(array.data.tobytes())))
+
 def log(*args, file=sys.stderr, **kwargs):
     time_str = f'{time.time():.6f}'
     print(f'[{time_str}]', *args, file=file, **kwargs)

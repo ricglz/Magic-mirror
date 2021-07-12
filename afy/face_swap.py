@@ -9,6 +9,7 @@ import cv2
 
 from afy.custom_typings import CV2Image, BBoxes
 from afy.swappers import *
+from afy.utils import hash_numpy_array
 
 class SwapMethod(IntEnum):
     '''Enum to organize the swap methods for faces'''
@@ -27,7 +28,7 @@ class Faceswap:
         **kwargs,
     ):
         self.aligner = aligner
-        self.landmark_hashes = {}
+        self.cached_landmarks = {}
         cls = self.available_swappers[int(swap_method)]
         self.swapper: Swapper = cls(**kwargs)
 
@@ -39,17 +40,17 @@ class Faceswap:
         # This is by far the slowest part of the whole algorithm, so we
         # cache the landmarks if the image is the same, especially when
         # dealing with videos this makes things twice as fast
-        img_hash = str(abs(hash(img.data.tobytes())))
+        img_hash = hash_numpy_array(img)
 
-        if img_hash in self.landmark_hashes:
-            return self.landmark_hashes[img_hash]
+        if img_hash in self.cached_landmarks:
+            return self.cached_landmarks[img_hash]
 
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         points = self.aligner.get_landmarks_from_image(img, bboxes)
         landmarks = points[0].astype(int)
 
         # Save to image cache
-        self.landmark_hashes[img_hash] = landmarks
+        self.cached_landmarks[img_hash] = landmarks
 
         return landmarks
 

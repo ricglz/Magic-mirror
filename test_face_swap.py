@@ -11,7 +11,7 @@ aligner = FaceAlignment(
     device='cuda' if torch.cuda.is_available() else 'cpu',
     face_detector='blazeface',
 )
-get_face_swap = lambda **kwargs: Faceswap(aligner, SwapMethod.POISSON, **kwargs)
+get_face_swap = lambda **kwargs: Faceswap(aligner, SwapMethod.TRIANGULATION, **kwargs)
 swapper = get_face_swap()
 
 def annotate_landmarks(im, landmarks):
