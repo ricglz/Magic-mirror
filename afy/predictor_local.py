@@ -8,7 +8,8 @@ import torch
 
 from afy.custom_typings import BBox, CV2Image
 from afy.face_swap import Faceswap
-from afy.magic_mirror import MagicMirror
+from afy.predictor import Predictor
+
 from articulated.animate import get_animation_region_params
 from articulated.demo import load_checkpoints
 
@@ -42,26 +43,33 @@ def get_face(image_numpy: CV2Image, aligner: FaceAlignment):
     face = to_tensor(to_numpy(extract_face(pil_image, bbox)))
     return face, bbox
 
-class PredictorLocal:
+class PredictorLocal(Predictor):
     output_size = (512, 512)
+    driving = None
+    driving_region_params = None
 
     def __init__(self, config_path: str, checkpoint_path: str):
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        networks = load_checkpoints(config_path, checkpoint_path, self.device == 'cpu')
-        self.generator, self.region_predictor, self.avd_network = networks
-        self.driving = None
-        self.driving_region_params = None
-        self.magic_mirror = MagicMirror()
+        super().__init__()
+        self.networks = load_checkpoints(
+            config_path, checkpoint_path, self.device == 'cpu'
+        )
         self.aligner = FaceAlignment(
-            LandmarksType._2D,
-            device='cuda' if torch.cuda.is_available() else 'cpu',
-            face_detector='blazeface',
+            LandmarksType._2D, device=self.device, face_detector='blazeface',
         )
 
         self.face_swapper = Faceswap(self.aligner)
 
-    def reset_frames(self):
-        pass
+    @property
+    def generator(self):
+        return self.networks[0]
+
+    @property
+    def region_predictor(self):
+        return self.networks[1]
+
+    @property
+    def avd_network(self):
+        return self.networks[2]
 
     @torch.no_grad()
     def set_source_image(self, source_image: CV2Image):
@@ -116,16 +124,3 @@ class PredictorLocal:
         assert isinstance(out, np.ndarray), error_msg
 
         return cv2.resize(out, self.output_size)
-
-    def get_frame_kp(self, image):
-        pass
-
-    @staticmethod
-    def normalize_alignment_kp(kp):
-        pass
-
-    def get_start_frame(self):
-        pass
-
-    def get_start_frame_kp(self):
-        pass
