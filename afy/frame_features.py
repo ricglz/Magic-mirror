@@ -34,7 +34,7 @@ class FrameFeatures():
         frame_rgb = frame[..., ::-1]
         features = get_3D_features(frame_rgb, aligner_2d, aligner_3d)
         transformed = img_transforms(frame_rgb, features[1], features[0])
-        self.tensor, self.landmarks_2d, self.bbox = transformed
+        self.tensor, self.landmarks, _ = transformed
         _, self.landmarks_3d, _ = img_transforms(
             frame_rgb, features[2], features[0]
         )
