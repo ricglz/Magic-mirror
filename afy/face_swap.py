@@ -23,7 +23,7 @@ class Faceswap:
     def __init__(
         self,
         aligner: FaceAlignment,
-        swap_method = SwapMethod.EDS,
+        swap_method = SwapMethod.POISSON,
         **kwargs,
     ):
         self.aligner = aligner
