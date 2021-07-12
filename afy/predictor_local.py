@@ -44,7 +44,6 @@ def get_face(image_numpy: CV2Image, aligner: FaceAlignment):
     return face, bbox
 
 class PredictorLocal(Predictor):
-    output_size = (512, 512)
     driving = None
     driving_region_params = None
 
@@ -111,16 +110,3 @@ class PredictorLocal(Predictor):
         out = self._face_swap(driving_frame, bbox, modified_face)
 
         return out
-
-    def predict(self, driving_frame: CV2Image):
-        assert self.driving_region_params is not None, "call set_source_image()"
-
-        if self.magic_mirror.should_predict():
-            out = self._predict(driving_frame)
-        else:
-            out = driving_frame
-
-        error_msg = f'Expected out to be np.ndarray, got {out.__class__}'
-        assert isinstance(out, np.ndarray), error_msg
-
-        return cv2.resize(out, self.output_size)

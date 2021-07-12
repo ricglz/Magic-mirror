@@ -1,16 +1,20 @@
 '''Module containing predictor using fsgan model'''
-from typing import Tuple
+from typing import Dict, Optional, Tuple
 
 from face_alignment import FaceAlignment, LandmarksType
 from torch.nn import Module
+import numpy as np
 import torch
+import torch.nn.functional as F
 
-from afy.frame_features import FrameFeatures
 from afy.custom_typings import CV2Image
+from afy.frame_features import FrameFeatures
 from afy.predictor import Predictor
+from afy.utils import hash_numpy_array
 
 # from fsgan.models.hopenet import Hopenet
 from fsgan.data import landmark_transforms
+from fsgan.utils.estimate_pose import rigid_transform_3D, matrix2angle, euler2mat
 from fsgan.utils.heatmap import LandmarkHeatmap
 from fsgan.utils.obj_factory import obj_factory
 
@@ -39,9 +43,25 @@ def img_transforms(pil_transforms: Tuple[str], tensor_transforms: Tuple[str]):
         pil_transforms_arr + tensor_transforms_arr
     )
 
+def transfer_mask(img1, img2, mask):
+    mask = mask.view(mask.shape[0], 1, mask.shape[1], mask.shape[2]).repeat(1, 3, 1, 1).float()
+    return img1 * mask + img2 * (1 - mask)
+
+def create_pyramid(img, n=1):
+    if isinstance(img, (list, tuple)):
+        return img
+
+    pyd = [img]
+    for _ in range(n - 1):
+        elem = F.avg_pool2d(pyd[-1], 3, stride=2, padding=1, count_include_pad=False)
+        pyd.append(elem)
+
+    return pyd
+
 class FSGANPredictor(Predictor):
     '''Predictor that uses a fsgan model as its backbone'''
-    source = None
+    cached_frame_features: Dict[str, FrameFeatures] = {}
+    target: Optional[FrameFeatures] = None
 
     def __init__(self, *_):
         super().__init__()
@@ -63,7 +83,64 @@ class FSGANPredictor(Predictor):
     #     checkpoint: dict = torch.load(checkpoint_path)
     #     return load_state_and_eval(model, checkpoint)
 
-    def set_source_image(self, source_image: CV2Image):
-        self.source = FrameFeatures(
-            source_image, self.aligner_2d, self.aligner_3d, self.img_transforms
+    def _get_frame_features(self, frame: CV2Image):
+        frame_hash = hash_numpy_array(frame)
+        if frame_hash in self.cached_frame_features:
+            return self.cached_frame_features[frame_hash]
+        frame_features = FrameFeatures(
+            frame, self.aligner_2d, self.aligner_3d, self.img_transforms
         )
+        self.cached_frame_features[frame_hash] = frame_features
+        return frame_features
+
+    def set_source_image(self, source_image: CV2Image):
+        self.target = self._get_frame_features(source_image)
+
+    def _predict(self, driving_frame: CV2Image):
+        source = self._get_frame_features(driving_frame)
+        R, t = rigid_transform_3D(
+            self.target.landmarks_3d[0].numpy(), source.landmarks_3d[0].numpy()
+        )
+        euler = np.array(matrix2angle(R))
+
+        pts = self.target.landmarks_3d[0].numpy().transpose()
+        out_pts = R @ pts
+        translation = np.tile(t, (out_pts.shape[1], 1)).transpose()
+        out_pts += translation
+        out_pts = out_pts.transpose()
+
+        # Transfer mouth points only
+        source_landmarks_np = source.landmarks[0].cpu().numpy().copy()
+        mouth_pts = out_pts[48:, :2] - out_pts[48:, :2].mean(axis=0) + source_landmarks_np[48:, :].mean(axis=0)
+        transformed_landmarks = source_landmarks_np
+        transformed_landmarks[48:, :] = mouth_pts
+
+        # Create heatmap pyramids
+        transformed_landmarks_tensor = torch.from_numpy(transformed_landmarks).unsqueeze(0).to(self.device)
+        transformed_hm_tensor = self.landmarks2heatmaps(transformed_landmarks_tensor)
+        transformed_hm_tensor_pyd = [transformed_hm_tensor]
+        transformed_hm_tensor_pyd.append(
+            F.interpolate(transformed_hm_tensor, scale_factor=0.5, mode='bilinear', align_corners=False))
+
+        # Face reenactment
+        reenactment_input_tensor = []
+        len_source_tensor = len(source.tensor)
+        for j in range(len_source_tensor):
+            source.tensor[j] = source.tensor[j].unsqueeze(0).to(self.device)
+            # transformed_hm_tensor_pyd[j] = transformed_hm_tensor_pyd[j].to(device)
+            reenactment_input_tensor.append(
+                torch.cat((source.tensor[j], transformed_hm_tensor_pyd[j]), dim=1))
+        reenactment_img_tensor, reenactment_seg_tensor = self.gen_r(reenactment_input_tensor)
+
+        # Transfer reenactment to original image
+        source_orig_tensor = source.tensor[0].to(self.device)
+        face_mask_tensor = reenactment_seg_tensor.argmax(1) == 1
+        transfer_tensor = transfer_mask(reenactment_img_tensor, source_orig_tensor, face_mask_tensor)
+
+        # Blend the transfer image with the source image
+        blend_input_tensor = torch.cat(
+            (transfer_tensor, source_orig_tensor, face_mask_tensor.unsqueeze(1).float()), dim=1)
+        blend_input_tensor_pyd = create_pyramid(blend_input_tensor, len_source_tensor)
+        blend_tensor = self.gen_b(blend_input_tensor_pyd)
+
+        return tensor2bgr(blend_tensor)
