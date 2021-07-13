@@ -95,7 +95,7 @@ class FSGANPredictor(Predictor):
     cached_frame_features: Dict[str, FrameFeatures] = {}
     target: Optional[FrameFeatures] = None
 
-    def __init__(self, *_, **_):
+    def __init__(self, *_, **kwargs):
         super().__init__()
         self.aligner_2d = FaceAlignment(LandmarksType._2D, face_detector='blazeface')
         self.aligner_3d = FaceAlignment(LandmarksType._3D, face_detector='blazeface')

@@ -11,7 +11,7 @@ class Predictor(ABC):
     '''Swapper abstract class'''
     output_size = (512, 512)
 
-    def __init__(self, *_, **_):
+    def __init__(self, *_, **kwargs):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.magic_mirror = MagicMirror()
 
