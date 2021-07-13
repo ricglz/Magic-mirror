@@ -15,7 +15,7 @@ from articulated.animate import get_animation_region_params
 from articulated.demo import load_checkpoints
 
 MODEL_SIZE = (256, 256)
-log = Logger('./var/log/recv_worker.log', verbose=opt.verbose)
+log = Logger('./var/log/recv_worker.log')
 
 def to_tensor(a: np.ndarray):
     '''Creates tensor of numpy array of an image'''
