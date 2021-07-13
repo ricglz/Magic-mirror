@@ -9,11 +9,13 @@ import torch
 from afy.custom_typings import BBox, CV2Image
 from afy.face_swap import Faceswap
 from afy.predictor import Predictor
+from afy.utils import Logger
 
 from articulated.animate import get_animation_region_params
 from articulated.demo import load_checkpoints
 
 MODEL_SIZE = (256, 256)
+log = Logger('./var/log/recv_worker.log', verbose=opt.verbose)
 
 def to_tensor(a: np.ndarray):
     '''Creates tensor of numpy array of an image'''
@@ -89,6 +91,7 @@ class PredictorLocal(Predictor):
     @torch.no_grad()
     def _set_source_image(self, source_image: CV2Image):
         self.driving = self._prepare_img(source_image)[0]
+        log(self.driving, important=True)
         self.driving_region_params = self.region_predictor(self.driving)
 
     @torch.no_grad()
@@ -104,6 +107,7 @@ class PredictorLocal(Predictor):
     @torch.no_grad()
     def _predict(self, driving_frame: CV2Image):
         source, bbox = self._prepare_img(driving_frame)
+        log(source, bbox, important=True)
 
         source_region_params = self.region_predictor(source)
 

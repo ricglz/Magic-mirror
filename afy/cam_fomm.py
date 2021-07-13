@@ -279,8 +279,6 @@ if __name__ == "__main__":
             elif is_calibrated:
                 tt.tic()
                 out = predictor.predict(frame)
-                if out is None:
-                    log('predict returned None')
                 timing['predict'] = tt.toc()
             else:
                 out = None
