@@ -17,7 +17,7 @@ class Predictor(ABC):
 
     @classmethod
     def __subclasshook__(cls, subclass):
-        if hasattr(subclass, 'set_source_image') and callable(subclass.set_source_image) and \
+        if hasattr(subclass, '_set_source_image') and callable(subclass._set_source_image) and \
            hasattr(subclass, '_predict') and callable(subclass._predict):
             return True
         return NotImplemented
@@ -26,8 +26,12 @@ class Predictor(ABC):
         pass
 
     @abstractmethod
-    def set_source_image(self, source_image: CV2Image):
+    def _set_source_image(self, source_image: CV2Image):
         raise NotImplementedError
+
+    def set_source_image(self, source_image: CV2Image):
+        self.magic_mirror.reset_tic()
+        self._set_source_image(source_image)
 
     @abstractmethod
     def _predict(self, driving_frame: CV2Image):

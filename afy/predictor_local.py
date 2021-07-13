@@ -71,8 +71,7 @@ class PredictorLocal(Predictor):
         return self.networks[2]
 
     @torch.no_grad()
-    def set_source_image(self, source_image: CV2Image):
-        self.magic_mirror.reset_tic()
+    def _set_source_image(self, source_image: CV2Image):
         self.driving = get_face(source_image, self.aligner)[0].to(self.device)
         self.driving_region_params = self.region_predictor(self.driving)
 

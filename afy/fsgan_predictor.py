@@ -125,7 +125,7 @@ class FSGANPredictor(Predictor):
         self.cached_frame_features[frame_hash] = frame_features
         return frame_features
 
-    def set_source_image(self, source_image: CV2Image):
+    def _set_source_image(self, source_image: CV2Image):
         self.target = self._get_frame_features(source_image)
 
     def _get_out_pts(self, source: FrameFeatures) -> np.ndarray:
