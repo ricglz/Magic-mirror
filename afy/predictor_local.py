@@ -15,7 +15,7 @@ from articulated.animate import get_animation_region_params
 from articulated.demo import load_checkpoints
 
 MODEL_SIZE = (256, 256)
-log = Logger('./var/log/recv_worker.log')
+log = Logger('./var/log/predictor_local.log')
 
 def to_tensor(a: np.ndarray):
     '''Creates tensor of numpy array of an image'''
@@ -101,8 +101,8 @@ class PredictorLocal(Predictor):
         bbox: BBox,
         modified_face: torch.Tensor
     ):
-        cv2_modified_face = pil_to_cv2(to_pil_image(modified_face))[...,::-1]
-        return self.face_swapper.faceswap(source, cv2_modified_face, [bbox])
+        # cv2_modified_face = pil_to_cv2(to_pil_image(modified_face))[...,::-1]
+        return self.face_swapper.faceswap(source, modified_face, [bbox])
 
     @torch.no_grad()
     def _predict(self, driving_frame: CV2Image):
@@ -124,6 +124,7 @@ class PredictorLocal(Predictor):
             source_region_params=self.driving_region_params,
             driving_region_params=new_region_params
         )['prediction'][0]
+        out = pil_to_cv2(to_pil_image(out))[...,::-1]
 
         if self.swap_face:
             out = self._face_swap(driving_frame, bbox, out)
