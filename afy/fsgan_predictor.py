@@ -97,8 +97,8 @@ class FSGANPredictor(Predictor):
 
     def __init__(self, *_):
         super().__init__()
-        self.aligner_2d = FaceAlignment(LandmarksType._2D, flip_input=False)
-        self.aligner_3d = FaceAlignment(LandmarksType._3D, flip_input=False)
+        self.aligner_2d = FaceAlignment(LandmarksType._2D, face_detector='blazeface')
+        self.aligner_3d = FaceAlignment(LandmarksType._3D, face_detector='blazeface')
         self.landmarks2heatmaps = LandmarkHeatmap().to(self.device)
         self.gen_r = self._load_model(REENACTMENT_MODEL_PATH)
         self.gen_b = self._load_model(BLEND_MODEL_PATH)
