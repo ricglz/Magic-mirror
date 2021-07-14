@@ -37,6 +37,7 @@ def load_state_and_eval(model: Module, checkpoint: dict):
     model.eval()
     return model
 
+@torch.no_grad()
 def img_transforms(pil_transforms: Tuple[str], tensor_transforms: Tuple[str]):
     '''Create img_transforms based on pil and tensor transforms'''
     pil_transforms_arr = obj_factory(pil_transforms)
@@ -49,6 +50,7 @@ def transfer_mask(img1, img2, mask):
     mask = mask.view(mask.shape[0], 1, mask.shape[1], mask.shape[2]).repeat(1, 3, 1, 1).float()
     return img1 * mask + img2 * (1 - mask)
 
+@torch.no_grad()
 def create_pyramid(img, n=1):
     if isinstance(img, (list, tuple)):
         return img
@@ -60,6 +62,7 @@ def create_pyramid(img, n=1):
 
     return pyd
 
+@torch.no_grad()
 def unnormalize(tensor, mean, std):
     """Normalize a tensor image with mean and standard deviation.
 
@@ -77,6 +80,7 @@ def unnormalize(tensor, mean, std):
         t.mul_(s).add_(m)
     return tensor
 
+@torch.no_grad()
 def tensor2bgr(img_tensor):
     output_img = unnormalize(img_tensor.clone(), [0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
     output_img = output_img.squeeze().permute(1, 2, 0).cpu().numpy()
@@ -120,6 +124,7 @@ class FSGANPredictor(Predictor):
     #     checkpoint: dict = torch.load(checkpoint_path)
     #     return load_state_and_eval(model, checkpoint)
 
+    @torch.no_grad()
     def _get_frame_features(self, frame: CV2Image):
         self.logger('get frame features', important=True)
         frame_hash = hash_numpy_array(frame)
@@ -132,8 +137,10 @@ class FSGANPredictor(Predictor):
         return frame_features
 
     def _set_source_image(self, source_image: CV2Image):
+        self.logger('Set source image', important=True)
         self.target = self._get_frame_features(source_image)
 
+    @torch.no_grad()
     def _get_out_pts(self, source: FrameFeatures) -> np.ndarray:
         self.logger('get out pts', important=True)
         R, t = rigid_transform_3D(
@@ -145,6 +152,7 @@ class FSGANPredictor(Predictor):
         out_pts += translation
         return out_pts.transpose()
 
+    @torch.no_grad()
     def _create_heatmap_pyramids(self, transformed_landmarks):
         self.logger('create heatmap pyramids', important=True)
         transformed_landmarks_tensor = torch.from_numpy(transformed_landmarks).unsqueeze(0).to(self.device)
@@ -157,6 +165,7 @@ class FSGANPredictor(Predictor):
         )
         return [transformed_hm_tensor, interpolation]
 
+    @torch.no_grad()
     def _face_reenactment(self, source: FrameFeatures, transformed_hm_tensor_pyd):
         self.logger('face reenactment', important=True)
         reenactment_input_tensor = []
@@ -166,7 +175,9 @@ class FSGANPredictor(Predictor):
                 torch.cat((source.tensor[j], transformed_hm_tensor_pyd[j]), dim=1))
         return self.gen_r(reenactment_input_tensor)
 
+    @torch.no_grad()
     def _predict(self, driving_frame: CV2Image):
+        self.logger('Predict', important=True)
         source = self._get_frame_features(driving_frame)
         out_pts = self._get_out_pts(source)
         transformed_landmarks = get_transformed_landmarks(source, out_pts)
