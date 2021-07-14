@@ -11,6 +11,7 @@ from torchvision.transforms.functional import to_pil_image
 from afy.custom_typings import CV2Image
 from afy.frame_features import FrameFeatures
 from afy.predictor import Predictor
+from afy.swappers.constants import EYES_BROWS_POINTS, MOUTH_POINTS
 from afy.utils import hash_numpy_array
 
 # from fsgan.models.hopenet import Hopenet
@@ -23,12 +24,15 @@ BLEND_MODEL_PATH = 'weights/ijbc_msrunet_256_2_0_blending_v1.pth'
 POSE_MODEL_PATH = 'weights/hopenet_robust_alpha1.pth'
 REENACTMENT_MODEL_PATH = 'weights/ijbc_msrunet_256_2_0_reenactment_v1.pth'
 
-REENACTMENT_ARCH = 'res_unet_split.MultiScaleResUNet(in_nc=71,out_nc=(3,3),flat_layers=(2,0,2,3),ngf=128)'
+REENACTMENT_ARCH = \
+    'res_unet_split.MultiScaleResUNet(in_nc=71,out_nc=(3,3),flat_layers=(2,0,2,3),ngf=128)'
 
 PIL_TRANSFORMS = ('landmark_transforms.Resize(256)',
                   'landmark_transforms.Pyramids(2)')
 TENSOR_TRANSFORMS = ('landmark_transforms.ToTensor()',
                      'transforms.Normalize(mean=[0.5,0.5,0.5],std=[0.5,0.5,0.5])')
+
+POINTS_TO_TRANSFORM = EYES_BROWS_POINTS + MOUTH_POINTS
 
 def load_state_and_eval(model: Module, checkpoint: dict):
     '''
@@ -94,9 +98,11 @@ def tensor2bgr(img_tensor):
 def get_transformed_landmarks(source: FrameFeatures, out_pts: np.ndarray):
     '''Transfer mouth points only.'''
     source_landmarks_np = source.landmarks[0].cpu().numpy().copy()
-    mouth_pts = out_pts[48:, :2] - out_pts[48:, :2].mean(axis=0) + source_landmarks_np[48:, :].mean(axis=0)
+    mouth_pts = out_pts[POINTS_TO_TRANSFORM, :2] - \
+                out_pts[POINTS_TO_TRANSFORM, :2].mean(axis=0) + \
+                source_landmarks_np[POINTS_TO_TRANSFORM, :].mean(axis=0)
     transformed_landmarks = source_landmarks_np
-    transformed_landmarks[48:, :] = mouth_pts
+    transformed_landmarks[POINTS_TO_TRANSFORM, :] = mouth_pts
     return transformed_landmarks
 
 class FSGANPredictor(Predictor):
