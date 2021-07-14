@@ -8,10 +8,11 @@ import msgpack_numpy as m
 import numpy as np
 import zmq
 
-from arguments import opt
-from networking import SerializingContext
-from predictor_local import PredictorLocal
-from utils import Logger, TicToc, AccumDict, Once
+from afy.arguments import opt
+from afy.fsgan_predictor import FSGANPredictor
+from afy.networking import SerializingContext
+from afy.predictor_local import PredictorLocal
+from afy.utils import Logger, TicToc, AccumDict, Once
 
 m.patch()
 
@@ -134,7 +135,8 @@ class PredictorWorker():
                     else:
                         del predictor
                         predictor_args = args
-                        predictor = PredictorLocal(*predictor_args[0], **predictor_args[1])
+                        cls = FSGANPredictor if opt.fsgan else PredictorLocal
+                        predictor = cls(*predictor_args[0], **predictor_args[1])
                         log("Initialized predictor with:", predictor_args, important=True)
                     result = True
                     tt.tic() # don't account for init
