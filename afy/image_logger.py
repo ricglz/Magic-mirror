@@ -14,7 +14,7 @@ class ImageLogger():
 
     @property
     def filename(self):
-        filename = f'{self.counter:08}'
+        filename = f'{self.counter:08}.jpg'
         self.counter += 1
         return filename
 
