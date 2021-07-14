@@ -14,6 +14,11 @@ def add_predictor_arguments(parser: ArgumentParser):
         action="store_true",
         help="Print additional information"
     )
+    parser.add_argument(
+        "--swap-face",
+        action="store_true",
+        help="Whether to perform face swap algorithm"
+    )
     return parser
 
 def get_cam_opt():

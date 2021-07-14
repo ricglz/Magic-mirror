@@ -11,7 +11,7 @@ log = Tee('./var/log/test_locally.log')
 def create_objects():
     log('Creating Predictor')
     predictor = PredictorLocal(
-        True,
+        local_opt.swap_face,
         config_path=local_opt.config_path,
         checkpoint_path=local_opt.checkpoint_path,
     )
