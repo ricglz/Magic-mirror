@@ -8,6 +8,7 @@ import torch
 
 from afy.custom_typings import BBox, CV2Image
 from afy.face_swap import Faceswap
+from afy.image_logger import ImageLogger
 from afy.predictor import Predictor
 from afy.utils import Logger
 
@@ -16,6 +17,7 @@ from articulated.demo import load_checkpoints
 
 MODEL_SIZE = (256, 256)
 log = Logger('./var/log/predictor_local.log')
+image_logger = ImageLogger('imgs/predictor_local')
 
 def to_tensor(a: np.ndarray):
     '''Creates tensor of numpy array of an image'''
@@ -82,11 +84,13 @@ class PredictorLocal(Predictor):
 
     def _prepare_img(self, img: CV2Image):
         bbox = None
+        image_logger.save_cv2(img)
         if self.swap_face:
             parsed_img, bbox = get_face(img, self.aligner)
         else:
             parsed_img = to_tensor(cv2.resize(img[..., ::-1], MODEL_SIZE))
-        log(parsed_img, bbox is None, important=True)
+        image_logger.save_pil(to_pil_image(parsed_img))
+        log(bbox is None, important=True)
         return parsed_img.to(self.device), bbox
 
     @torch.no_grad()
@@ -126,10 +130,17 @@ class PredictorLocal(Predictor):
             source_region_params=self.driving_region_params,
             driving_region_params=new_region_params
         )['prediction'][0]
-        out = pil_to_cv2(to_pil_image(out))[...,::-1]
+        out_pil = to_pil_image(out)
+        image_logger.save_pil(out_pil)
+        out = pil_to_cv2(out_pil)
+        image_logger.save_cv2(out)
+        out = out[...,::-1]
+        image_logger.save_cv2(out)
 
         if self.swap_face:
             log('Faceswap', important=True)
             out = self._face_swap(driving_frame, bbox, out)
+
+        image_logger.save_cv2(out)
 
         return out
