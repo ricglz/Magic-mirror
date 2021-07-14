@@ -1,5 +1,5 @@
 '''Util module to log images'''
-from os import mkdir, path
+from os import makedirs, path
 from PIL.Image import Image
 import cv2
 from afy.custom_typings import CV2Image
@@ -10,8 +10,7 @@ class ImageLogger():
 
     def __init__(self, save_path: str):
         self.path = save_path
-        if not path.exists(save_path):
-            mkdir(save_path)
+        makedirs(save_path, exist_ok=True)
 
     @property
     def filename(self):
