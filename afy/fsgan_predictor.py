@@ -6,6 +6,7 @@ from torch.nn import Module
 import numpy as np
 import torch
 import torch.nn.functional as F
+from torchvision.transforms.functional import to_pil_image
 
 from afy.custom_typings import CV2Image
 from afy.frame_features import FrameFeatures
@@ -185,6 +186,7 @@ class FSGANPredictor(Predictor):
         reenactment_img_tensor, reenactment_seg_tensor = self._face_reenactment(
             source, transformed_hm_tensor_pyd
         )
+        self.image_logger.save_pil(to_pil_image(reenactment_img_tensor))
 
         # Transfer reenactment to original image
         self.logger('transfer reenactment', important=True)
@@ -193,6 +195,7 @@ class FSGANPredictor(Predictor):
         transfer_tensor = transfer_mask(
             reenactment_img_tensor, source_orig_tensor, face_mask_tensor
         )
+        self.image_logger.save_pil(to_pil_image(transfer_tensor))
 
         self.logger('Blend transfer with source', important=True)
         # Blend the transfer image with the source image
