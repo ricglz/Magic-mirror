@@ -63,12 +63,12 @@ class PredictorLocal(Predictor):
         self.networks = load_checkpoints(
             config_path, checkpoint_path, self.device == 'cpu'
         )
+        self.aligner = FaceAlignment(
+            LandmarksType._2D, device=self.device, face_detector='blazeface',
+        )
+
         self.swap_face = swap_face
-        if self.swap_face:
-            self.aligner = FaceAlignment(
-                LandmarksType._2D, device=self.device, face_detector='blazeface',
-            )
-            self.face_swapper = Faceswap(self.aligner)
+        self.face_swapper = Faceswap(self.aligner)
 
     @property
     def generator(self):
@@ -82,7 +82,6 @@ class PredictorLocal(Predictor):
     def avd_network(self):
         return self.networks[2]
 
-    @torch.no_grad()
     def _prepare_img(self, img: CV2Image):
         bbox = None
         image_logger.save_cv2(img)
@@ -119,17 +118,17 @@ class PredictorLocal(Predictor):
 
         log('New region params', important=True)
         new_region_params = get_animation_region_params(
+            self.driving_region_params,
             source_region_params,
-            self.driving_region_params,
-            self.driving_region_params,
+            source_region_params,
             avd_network=self.avd_network,
             mode='avd'
         )
 
         log('Generator', important=True)
         out = self.generator(
-            source,
-            source_region_params=source_region_params,
+            self.driving,
+            source_region_params=self.driving_region_params,
             driving_region_params=new_region_params
         )['prediction'][0]
         out_pil = to_pil_image(out)
