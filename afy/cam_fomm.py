@@ -263,7 +263,6 @@ if __name__ == "__main__":
                 log("Can't receive frame (stream end?). Exiting ...")
                 break
 
-            frame = frame[..., ::-1]
             frame = resize(frame, (IMG_SIZE, IMG_SIZE))
 
             if find_keyframe:
@@ -418,7 +417,7 @@ if __name__ == "__main__":
             if not opt.hide_rect:
                 draw_rect(preview_frame)
 
-            cv2.imshow('cam', preview_frame[..., ::-1])
+            cv2.imshow('cam', preview_frame)
 
             if out is not None:
                 if not opt.no_pad:
@@ -431,7 +430,7 @@ if __name__ == "__main__":
                     out = resize(out, stream_img_size)
                     stream.schedule_frame(out)
 
-                cv2.imshow('avatarify', out[..., ::-1])
+                cv2.imshow('avatarify', out)
 
             fps_hist.append(tt.toc(total=True))
             if len(fps_hist) == 10:
