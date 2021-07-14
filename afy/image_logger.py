@@ -8,8 +8,9 @@ class ImageLogger():
     '''Class that logs the images in a certain folder'''
     counter = 0
 
-    def __init__(self, save_path: str):
+    def __init__(self, save_path: str, verbose=False):
         self.path = save_path
+        self.verbose = verbose
         makedirs(save_path, exist_ok=True)
 
     @property
@@ -23,7 +24,9 @@ class ImageLogger():
         return path.join(self.path, self.filename)
 
     def save_pil(self, image: Image):
-        image.save(self.full_path)
+        if self.verbose:
+            image.save(self.full_path)
 
     def save_cv2(self, image: CV2Image):
-        cv2.imwrite(self.full_path, image)
+        if self.verbose:
+            cv2.imwrite(self.full_path, image)

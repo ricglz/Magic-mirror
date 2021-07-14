@@ -135,8 +135,6 @@ class PredictorLocal(Predictor):
         image_logger.save_pil(out_pil)
         out = pil_to_cv2(out_pil)
         image_logger.save_cv2(out)
-        out = out[...,::-1]
-        image_logger.save_cv2(out)
 
         if self.swap_face:
             log('Faceswap', important=True)
