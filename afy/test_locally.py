@@ -12,6 +12,7 @@ def create_objects():
     log('Creating Predictor')
     predictor = PredictorLocal(
         local_opt.swap_face,
+        local_opt.verbose,
         config_path=local_opt.config_path,
         checkpoint_path=local_opt.checkpoint_path,
     )

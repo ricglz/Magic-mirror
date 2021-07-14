@@ -16,8 +16,6 @@ from articulated.animate import get_animation_region_params
 from articulated.demo import load_checkpoints
 
 MODEL_SIZE = (256, 256)
-log = Logger('./var/log/predictor_local.log')
-image_logger = ImageLogger('imgs/predictor_local')
 
 def to_tensor(a: np.ndarray):
     '''Creates tensor of numpy array of an image'''
@@ -56,19 +54,19 @@ class PredictorLocal(Predictor):
     def __init__(
         self,
         swap_face: bool,
+        verbose: bool,
         config_path: str,
         checkpoint_path: str,
     ):
-        super().__init__()
+        super().__init__(swap_face, 'predictor_local', verbose)
         self.networks = load_checkpoints(
             config_path, checkpoint_path, self.device == 'cpu'
         )
-        self.aligner = FaceAlignment(
-            LandmarksType._2D, device=self.device, face_detector='blazeface',
-        )
-
-        self.swap_face = swap_face
-        self.face_swapper = Faceswap(self.aligner)
+        if self.swap_face:
+            self.aligner = FaceAlignment(
+                LandmarksType._2D, device=self.device, face_detector='blazeface',
+            )
+            self.face_swapper = Faceswap(self.aligner)
 
     @property
     def generator(self):
@@ -84,14 +82,14 @@ class PredictorLocal(Predictor):
 
     def _prepare_img(self, img: CV2Image):
         bbox = None
-        image_logger.save_cv2(img)
+        self.image_logger.save_cv2(img)
         if self.swap_face:
             parsed_img, bbox = get_face(img, self.aligner)
         else:
             rgb_img = img[..., ::-1]
             parsed_img = to_tensor(cv2.resize(rgb_img / 255, MODEL_SIZE))
-        image_logger.save_pil(to_pil_image(parsed_img[0]))
-        log(bbox is None, important=True)
+        self.image_logger.save_pil(to_pil_image(parsed_img[0]))
+        self.logger(bbox is None, important=True)
         return parsed_img.to(self.device), bbox
 
     @torch.no_grad()
@@ -113,10 +111,10 @@ class PredictorLocal(Predictor):
     def _predict(self, driving_frame: CV2Image):
         source, bbox = self._prepare_img(driving_frame)
 
-        log('Source region params', important=True)
+        self.logger('Source region params', important=True)
         source_region_params = self.region_predictor(source)
 
-        log('New region params', important=True)
+        self.logger('New region params', important=True)
         new_region_params = get_animation_region_params(
             self.driving_region_params,
             source_region_params,
@@ -125,21 +123,21 @@ class PredictorLocal(Predictor):
             mode='avd'
         )
 
-        log('Generator', important=True)
+        self.logger('Generator', important=True)
         out = self.generator(
             self.driving,
             source_region_params=self.driving_region_params,
             driving_region_params=new_region_params
         )['prediction'][0]
         out_pil = to_pil_image(out)
-        image_logger.save_pil(out_pil)
+        self.image_logger.save_pil(out_pil)
         out = pil_to_cv2(out_pil)
-        image_logger.save_cv2(out)
+        self.image_logger.save_cv2(out)
 
         if self.swap_face:
-            log('Faceswap', important=True)
+            self.logger('Faceswap', important=True)
             out = self._face_swap(driving_frame, bbox, out)
 
-        image_logger.save_cv2(out)
+        self.image_logger.save_cv2(out)
 
         return out

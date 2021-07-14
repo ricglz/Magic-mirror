@@ -164,9 +164,10 @@ if __name__ == "__main__":
 
     log('Loading Predictor')
     predictor_args = {
-        'config_path': opt.config,
         'checkpoint_path': opt.checkpoint,
+        'config_path': opt.config,
         'swap_face': opt.swap_face,
+        'verbose': opt.verbose,
     }
     if opt.is_worker:
         from afy import predictor_worker
