@@ -86,12 +86,12 @@ class PredictorLocal(Predictor):
             parsed_img, bbox = get_face(img, self.aligner)
         else:
             parsed_img = to_tensor(cv2.resize(img[..., ::-1], MODEL_SIZE))
+        log(parsed_img, bbox is None, important=True)
         return parsed_img.to(self.device), bbox
 
     @torch.no_grad()
     def _set_source_image(self, source_image: CV2Image):
         self.driving = self._prepare_img(source_image)[0]
-        log(self.driving, important=True)
         self.driving_region_params = self.region_predictor(self.driving)
 
     @torch.no_grad()
@@ -107,10 +107,11 @@ class PredictorLocal(Predictor):
     @torch.no_grad()
     def _predict(self, driving_frame: CV2Image):
         source, bbox = self._prepare_img(driving_frame)
-        log(source, bbox, important=True)
 
+        log('Source region params', important=True)
         source_region_params = self.region_predictor(source)
 
+        log('New region params', important=True)
         new_region_params = get_animation_region_params(
             self.driving_region_params,
             source_region_params,
@@ -119,6 +120,7 @@ class PredictorLocal(Predictor):
             mode='avd'
         )
 
+        log('Generator', important=True)
         out = self.generator(
             self.driving,
             source_region_params=self.driving_region_params,
@@ -127,6 +129,7 @@ class PredictorLocal(Predictor):
         out = pil_to_cv2(to_pil_image(out))[...,::-1]
 
         if self.swap_face:
+            log('Faceswap', important=True)
             out = self._face_swap(driving_frame, bbox, out)
 
         return out
