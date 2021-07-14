@@ -25,7 +25,7 @@ REENACTMENT_MODEL_PATH = 'weights/ijbc_msrunet_256_2_0_reenactment_v1.pth'
 
 REENACTMENT_ARCH = 'res_unet_split.MultiScaleResUNet(in_nc=71,out_nc=(3,3),flat_layers=(2,0,2,3),ngf=128)'
 
-PIL_TRANSFORMS = ('landmark_transforms.FaceAlignCrop', 'landmark_transforms.Resize(256)',
+PIL_TRANSFORMS = ('landmark_transforms.Resize(256)',
                   'landmark_transforms.Pyramids(2)')
 TENSOR_TRANSFORMS = ('landmark_transforms.ToTensor()',
                      'transforms.Normalize(mean=[0.5,0.5,0.5],std=[0.5,0.5,0.5])')
@@ -44,7 +44,7 @@ def img_transforms(pil_transforms: Tuple[str], tensor_transforms: Tuple[str]):
     pil_transforms_arr = obj_factory(pil_transforms)
     tensor_transforms_arr = obj_factory(tensor_transforms)
     return landmark_transforms.ComposePyramids(
-        pil_transforms_arr + tensor_transforms_arr
+        [to_pil_image] + pil_transforms_arr + tensor_transforms_arr
     )
 
 def transfer_mask(img1, img2, mask):
@@ -84,7 +84,9 @@ def unnormalize(tensor, mean, std):
 @torch.no_grad()
 def tensor2bgr(img_tensor):
     output_img = unnormalize(img_tensor.clone(), [0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
-    output_img = output_img.squeeze().permute(1, 2, 0).cpu().numpy()
+    if len(output_img.size()) > 3:
+        output_img = output_img[0]
+    output_img = output_img.permute(1, 2, 0).cpu().numpy()
     output_img = np.round(output_img[:, :, ::-1] * 255).astype('uint8')
 
     return output_img
@@ -180,6 +182,7 @@ class FSGANPredictor(Predictor):
     def _predict(self, driving_frame: CV2Image):
         self.logger('Predict', important=True)
         source = self._get_frame_features(driving_frame)
+        self.image_logger.save_cv2(tensor2bgr(source.tensor[0]))
         out_pts = self._get_out_pts(source)
         transformed_landmarks = get_transformed_landmarks(source, out_pts)
         transformed_hm_tensor_pyd = self._create_heatmap_pyramids(transformed_landmarks)
