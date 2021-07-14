@@ -18,9 +18,9 @@ from fsgan.utils.estimate_pose import rigid_transform_3D
 from fsgan.utils.heatmap import LandmarkHeatmap
 from fsgan.utils.obj_factory import obj_factory
 
-BLEND_MODEL_PATH = '../weights/ijbc_msrunet_256_2_0_blending_v1.pth'
-POSE_MODEL_PATH = '../weights/hopenet_robust_alpha1.pth'
-REENACTMENT_MODEL_PATH = '../weights/ijbc_msrunet_256_2_0_reenactment_v1.pth'
+BLEND_MODEL_PATH = 'weights/ijbc_msrunet_256_2_0_blending_v1.pth'
+POSE_MODEL_PATH = 'weights/hopenet_robust_alpha1.pth'
+REENACTMENT_MODEL_PATH = 'weights/ijbc_msrunet_256_2_0_reenactment_v1.pth'
 
 PIL_TRANSFORMS = ('landmark_transforms.FaceAlignCrop', 'landmark_transforms.Resize(256)',
                   'landmark_transforms.Pyramids(2)')
