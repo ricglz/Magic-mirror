@@ -107,6 +107,7 @@ class FSGANPredictor(Predictor):
 
     def _load_model(self, checkpoint_path: str):
         checkpoint: dict = torch.load(checkpoint_path)
+        self.logger(checkpoint_path, checkpoint)
         model: Module = obj_factory(checkpoint['arch']).to(self.device)
         return load_state_and_eval(model, checkpoint)
 
