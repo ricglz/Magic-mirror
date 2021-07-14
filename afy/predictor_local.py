@@ -89,7 +89,7 @@ class PredictorLocal(Predictor):
             parsed_img, bbox = get_face(img, self.aligner)
         else:
             parsed_img = to_tensor(cv2.resize(img[..., ::-1], MODEL_SIZE))
-        image_logger.save_pil(to_pil_image(parsed_img))
+        image_logger.save_pil(to_pil_image(parsed_img[0]))
         log(bbox is None, important=True)
         return parsed_img.to(self.device), bbox
 
