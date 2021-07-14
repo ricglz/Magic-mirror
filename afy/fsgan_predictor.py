@@ -22,6 +22,8 @@ BLEND_MODEL_PATH = 'weights/ijbc_msrunet_256_2_0_blending_v1.pth'
 POSE_MODEL_PATH = 'weights/hopenet_robust_alpha1.pth'
 REENACTMENT_MODEL_PATH = 'weights/ijbc_msrunet_256_2_0_reenactment_v1.pth'
 
+REENACTMENT_ARCH = 'res_unet_split.MultiScaleResUNet(in_nc=71,out_nc=(3,3),flat_layers=(2,0,2,3),ngf=128)'
+
 PIL_TRANSFORMS = ('landmark_transforms.FaceAlignCrop', 'landmark_transforms.Resize(256)',
                   'landmark_transforms.Pyramids(2)')
 TENSOR_TRANSFORMS = ('landmark_transforms.ToTensor()',
@@ -100,15 +102,17 @@ class FSGANPredictor(Predictor):
         self.aligner_2d = FaceAlignment(LandmarksType._2D, face_detector='blazeface')
         self.aligner_3d = FaceAlignment(LandmarksType._3D, face_detector='blazeface')
         self.landmarks2heatmaps = LandmarkHeatmap().to(self.device)
-        self.gen_r = self._load_model(REENACTMENT_MODEL_PATH)
+        self.gen_r = self._load_model(REENACTMENT_MODEL_PATH, REENACTMENT_ARCH)
         self.gen_b = self._load_model(BLEND_MODEL_PATH)
         # self.gen_p = self._load_hopenet(POSE_MODEL_PATH)
         self.img_transforms = img_transforms(PIL_TRANSFORMS, TENSOR_TRANSFORMS)
 
-    def _load_model(self, checkpoint_path: str):
+    def _load_model(self, checkpoint_path: str, arch=None):
         checkpoint: dict = torch.load(checkpoint_path)
         self.logger(checkpoint_path, checkpoint)
-        model: Module = obj_factory(checkpoint['arch']).to(self.device)
+        if arch is None:
+            arch = checkpoint['arch']
+        model: Module = obj_factory(arch).to(self.device)
         return load_state_and_eval(model, checkpoint)
 
     # def _load_hopenet(self, checkpoint_path: str):
