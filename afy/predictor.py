@@ -16,7 +16,7 @@ class Predictor(ABC):
     def __init__(self, swap_face: bool, cls_name: str, verbose: bool, **_):
         self.swap_face = swap_face
         self.logger = Logger(f'./var/log/{cls_name}.log', verbose)
-        self.image_logger = ImageLogger(f'./var/log/{cls_name}.log', verbose)
+        self.image_logger = ImageLogger(f'./imgs/{cls_name}', verbose)
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.magic_mirror = MagicMirror()
 
