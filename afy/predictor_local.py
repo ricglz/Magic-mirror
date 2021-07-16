@@ -63,6 +63,7 @@ class PredictorLocal(Predictor):
             config_path, checkpoint_path, self.device == 'cpu'
         )
         if self.swap_face:
+            self.logger('Will perform face_swap', important=True)
             self.aligner = FaceAlignment(
                 LandmarksType._2D, device=self.device, face_detector='blazeface',
             )
@@ -89,7 +90,7 @@ class PredictorLocal(Predictor):
             rgb_img = img[..., ::-1]
             parsed_img = to_tensor(cv2.resize(rgb_img / 255, MODEL_SIZE))
         self.image_logger.save_pil(to_pil_image(parsed_img[0]))
-        self.logger(bbox is None, important=True)
+        self.logger(bbox is None)
         return parsed_img.to(self.device), bbox
 
     @torch.no_grad()
@@ -104,30 +105,50 @@ class PredictorLocal(Predictor):
         bbox: BBox,
         modified_face: torch.Tensor
     ):
-        # cv2_modified_face = pil_to_cv2(to_pil_image(modified_face))[...,::-1]
         return self.face_swapper.faceswap(source, modified_face, [bbox])
+
+    def _get_animation_region_args(self, source_region_params):
+        if self.swap_face:
+            return (
+                self.driving_region_params,
+                source_region_params,
+                source_region_params
+            )
+        return (
+            source_region_params,
+            self.driving_region_params,
+            self.driving_region_params,
+        )
+
+    def _generate(self, source, new_region_params, source_region_params):
+        if self.swap_face:
+            return self.generator(
+                self.driving,
+                new_region_params,
+                self.driving_region_params
+            )
+        return self.generator(
+            source,
+            new_region_params,
+            source_region_params,
+        )
 
     @torch.no_grad()
     def _predict(self, driving_frame: CV2Image):
         source, bbox = self._prepare_img(driving_frame)
 
-        self.logger('Source region params', important=True)
+        self.logger('Source region params')
         source_region_params = self.region_predictor(source)
 
-        self.logger('New region params', important=True)
+        self.logger('New region params')
+        args = self._get_animation_region_args(source_region_params)
         new_region_params = get_animation_region_params(
-            self.driving_region_params,
-            source_region_params,
-            source_region_params,
-            avd_network=self.avd_network,
-            mode='avd'
+            *args, avd_network=self.avd_network, mode='avd'
         )
 
-        self.logger('Generator', important=True)
-        out = self.generator(
-            self.driving,
-            source_region_params=self.driving_region_params,
-            driving_region_params=new_region_params
+        self.logger('Generator')
+        out = self._generate(
+            source, new_region_params, source_region_params
         )['prediction'][0]
         out_pil = to_pil_image(out)
         self.image_logger.save_pil(out_pil)
@@ -135,7 +156,7 @@ class PredictorLocal(Predictor):
         self.image_logger.save_cv2(out)
 
         if self.swap_face:
-            self.logger('Faceswap', important=True)
+            self.logger('Faceswap')
             out = self._face_swap(driving_frame, bbox, out)
 
         self.image_logger.save_cv2(out)
