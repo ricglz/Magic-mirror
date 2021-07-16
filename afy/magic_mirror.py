@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+'''Magic mirror module'''
 from enum import IntEnum
 from random import random
 
@@ -10,10 +10,14 @@ class State(IntEnum):
     WAIT_SHORT = 1
     PREDICT = 2
 
+DESIRED_FPS = 24
 WAIT_TIMES = [15, 5, 5]
 
 class MagicMirror():
     '''Module that manages the Magic Mirror experience'''
+    frames = 0
+    seconds = 0
+
     def __init__(self):
         self.state = State.WAIT_LONG
         self.tic_toc = TicToc()
@@ -27,10 +31,14 @@ class MagicMirror():
     @property
     def toc(self):
         '''Get amount of seconds that is waiting since the timer started'''
-        return int(self.tic_toc.toc(seconds=True))
+        return self.seconds
 
     def should_predict(self):
         '''Know if there should be a prediction. In addition to changing state'''
+        self.frames += 1
+        if self.frames == DESIRED_FPS:
+            self.frames = 0
+            self.seconds += 1
         if self.state == State.PREDICT:
             self._continue_predict()
             return True
@@ -40,18 +48,19 @@ class MagicMirror():
 
     def reset_tic(self):
         '''Resets timer'''
-        self.tic_toc.tic()
+        self.seconds = 0
+        self.frames = 0
+
+    def _update_state(self, new_state: State):
+        self.state = new_state
+        self.seconds = 0
 
     def _continue_predict(self):
         if self.toc == self.wait_time:
-            self.state = State.WAIT_LONG
-            self.tic_toc.tic()
+            self._update_state(State.WAIT_LONG)
 
     def _wait_time(self):
         if self.toc == self.wait_time:
             prob = random()
-            if prob <= 0.7:
-                self.state = State.PREDICT
-            else:
-                self.state = State.WAIT_SHORT
-            self.tic_toc.tic()
+            new_state = State.PREDICT if prob <= 0.7 else State.WAIT_SHORT
+            self._update_state(new_state)
