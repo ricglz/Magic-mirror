@@ -1,4 +1,5 @@
 '''Module to test using a video the local predictor'''
+from random import seed
 import cv2
 
 from afy.local_arguments import local_opt as opt
@@ -18,11 +19,12 @@ def create_objects():
 
 def main():
     '''Main function'''
+    seed(42)
     predictor, _ = create_objects()
     cap = cv2.VideoCapture(opt.input_video)
     fps = 24
     out = cv2.VideoWriter(
-        'output.mp4',
+        opt.output,
         cv2.VideoWriter_fourcc(*'MP4V'),
         fps,
         predictor.output_size,

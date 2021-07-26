@@ -14,9 +14,14 @@ def get_local_opt():
         help='Video to transform'
     )
     parser.add_argument(
-        "--avatars",
-        default="./avatars",
-        help="path to avatars directory"
+        '--avatars',
+        default='./avatars',
+        help='path to avatars directory'
+    )
+    parser.add_argument(
+        '--output',
+        default='video.mp4',
+        help='filename that will be given to the output video'
     )
 
     return parser.parse_args()
