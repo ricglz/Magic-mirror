@@ -9,7 +9,7 @@ import cv2
 
 from afy.custom_typings import CV2Image, BBoxes
 from afy.swappers import *
-from afy.utils import hash_numpy_array
+from afy.utils import np_to_hash
 
 class SwapMethod(IntEnum):
     '''Enum to organize the swap methods for faces'''
@@ -49,7 +49,7 @@ class Faceswap:
         # This is by far the slowest part of the whole algorithm, so we
         # cache the landmarks if the image is the same, especially when
         # dealing with videos this makes things twice as fast
-        img_hash = hash_numpy_array(img)
+        img_hash = np_to_hash(img)
 
         if img_hash in self.cached_landmarks:
             return self.cached_landmarks[img_hash]

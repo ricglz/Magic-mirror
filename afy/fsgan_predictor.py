@@ -12,7 +12,7 @@ from afy.custom_typings import CV2Image
 from afy.frame_features import FrameFeatures
 from afy.predictor import Predictor
 from afy.swappers.constants import EYES_BROWS_POINTS, MOUTH_POINTS
-from afy.utils import hash_numpy_array
+from afy.utils import np_to_hash
 
 # from fsgan.models.hopenet import Hopenet
 from fsgan.data import landmark_transforms
@@ -136,7 +136,7 @@ class FSGANPredictor(Predictor):
     @torch.no_grad()
     def _get_frame_features(self, frame: CV2Image):
         self.logger('get frame features')
-        frame_hash = hash_numpy_array(frame)
+        frame_hash = np_to_hash(frame)
         if frame_hash in self.cached_frame_features:
             return self.cached_frame_features[frame_hash]
         frame_features = FrameFeatures(

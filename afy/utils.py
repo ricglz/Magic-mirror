@@ -8,8 +8,8 @@ from typing import Union, Dict
 import numpy as np
 import cv2
 
-from afy.predictor_local import PredictorLocal
-from afy.fsgan_predictor import FSGANPredictor
+def np_to_hash(array: np.ndarray):
+    return str(abs(hash(array.data.tobytes())))
 
 def get_predictor(opt: Union[Namespace, Dict], fsgan=False):
     '''Gets the predictor based on opt'''
@@ -23,11 +23,11 @@ def get_predictor(opt: Union[Namespace, Dict], fsgan=False):
         }
     else:
         predictor_args = opt
-    cls = FSGANPredictor if fsgan else PredictorLocal
-    return cls(**predictor_args)
-
-def hash_numpy_array(array: np.ndarray):
-    return str(abs(hash(array.data.tobytes())))
+    if fsgan:
+        from afy.fsgan_predictor import FSGANPredictor
+        return FSGANPredictor(**predictor_args)
+    from afy.predictor_local import PredictorLocal
+    return PredictorLocal(**predictor_args)
 
 def log(*args, file=sys.stderr, **kwargs):
     time_str = f'{time.time():.6f}'
