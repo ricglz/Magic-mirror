@@ -20,7 +20,8 @@ def main():
     fps = 24
     out = cv2.VideoWriter(
         opt.output,
-        cv2.VideoWriter_fourcc(*'XVID'),
+        # cv2.VideoWriter_fourcc(*'XVID'),
+        0,
         fps,
         predictor.output_size,
     )
