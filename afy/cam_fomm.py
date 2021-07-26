@@ -36,7 +36,6 @@ def is_new_frame_better(driving, predictor):
         display_string = "No frame to compare to."
         return True
 
-    driving_smaller = resize(driving, (128, 128))[..., :3]
     new_kp = predictor.get_frame_kp(driving)
 
     if new_kp is None:
@@ -186,10 +185,8 @@ if __name__ == "__main__":
             sys.exit(1)
         predictor.start()
     else:
-        from afy import predictor_local
-        predictor = predictor_local.PredictorLocal(
-            **predictor_args
-        )
+        from afy.utils import get_predictor
+        predictor = get_predictor(predictor_args, opt.fsgan)
 
     cam_id = select_camera(config)
 

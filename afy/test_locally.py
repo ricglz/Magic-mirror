@@ -1,23 +1,17 @@
 '''Module to test using a video the local predictor'''
 import cv2
 
-from afy.local_arguments import local_opt
-from afy.utils import Tee
-from afy.predictor_local import PredictorLocal
+from afy.local_arguments import local_opt as opt
+from afy.utils import Tee, get_predictor
 from afy.helper_functions import load_images, prepare_image
 
 log = Tee('./var/log/test_locally.log')
 
 def create_objects():
     log('Creating Predictor')
-    predictor = PredictorLocal(
-        local_opt.swap_face,
-        local_opt.verbose,
-        config_path=local_opt.config_path,
-        checkpoint_path=local_opt.checkpoint_path,
-    )
+    predictor = get_predictor(opt, opt.fsgan)
     log('Loading images')
-    avatars, _ = load_images(local_opt)
+    avatars, _ = load_images(opt)
     log('Setting source image')
     predictor.set_source_image(avatars[0])
     return predictor, avatars
@@ -25,7 +19,7 @@ def create_objects():
 def main():
     '''Main function'''
     predictor, _ = create_objects()
-    cap = cv2.VideoCapture(local_opt.input_video)
+    cap = cv2.VideoCapture(opt.input_video)
     fps = 24
     out = cv2.VideoWriter(
         'output.mp4',
