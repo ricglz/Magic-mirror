@@ -10,6 +10,10 @@ from afy.custom_typings import CV2Image
 from afy.swappers import Swapper
 from afy.swappers.eds_swapper import get_im_blur
 
+clip = lambda arr, limit: np.clip(arr, 0, limit)
+clip_width = lambda arr, img: clip(arr, im.shape[1] - 1)
+clip_height = lambda arr, img: clip(arr, im.shape[0] - 1)
+
 ## 3D Transform
 def bilinear_interpolate(img, coords: np.ndarray):
     """
@@ -22,13 +26,17 @@ def bilinear_interpolate(img, coords: np.ndarray):
     """
     int_coords = coords.astype(np.int32)
     x0, y0 = int_coords
+    x1 = x0 + 1
+    y1 = y0 + 1
+    x0, x1 = clip_width(x0, img), clip_width(x1, img)
+    y0, y1 = clip_height(y0, img), clip_height(y1, img)
     dx, dy = coords - int_coords
 
     # 4 Neighour pixels
     q11 = img[y0, x0]
-    q21 = img[y0, x0 + 1]
-    q12 = img[y0 + 1, x0]
-    q22 = img[y0 + 1, x0 + 1]
+    q21 = img[y0, x1]
+    q12 = img[y1, x0]
+    q22 = img[y1, x1]
 
     btm = q21.T * dx + q11.T * (1 - dx)
     top = q22.T * dx + q12.T * (1 - dx)
