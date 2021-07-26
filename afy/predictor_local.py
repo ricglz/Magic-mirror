@@ -62,7 +62,7 @@ class PredictorLocal(Predictor):
             config_path, checkpoint_path, self.device == 'cpu'
         )
         if self.swap_face:
-            self.logger('Will perform face_swap', important=True)
+            self.logger('Will perform face_swap', swapper, important=True)
             self.aligner = FaceAlignment(
                 LandmarksType._2D, device=self.device, face_detector='blazeface',
             )
