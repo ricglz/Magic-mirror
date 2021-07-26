@@ -1,19 +1,6 @@
 from argparse import ArgumentParser
 
-def add_predictor_arguments(parser: ArgumentParser):
-    parser.add_argument("--config", help="path to config")
-    parser.add_argument(
-        "--checkpoint",
-        default='vox-cpk.pth.tar',
-        help="path to checkpoint to restore"
-    )
-
-    parser.add_argument(
-        "--verbose",
-        action="store_true",
-        help="Print additional information"
-    )
-    return parser
+from afy.shared_arguments import add_predictor_arguments
 
 def get_local_opt():
     parser = ArgumentParser()
