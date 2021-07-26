@@ -1,5 +1,7 @@
 '''Module to test using a video the local predictor'''
+from os import makedirs
 from random import seed
+
 import cv2
 from tqdm import tqdm
 
@@ -29,6 +31,7 @@ def main():
     seed(42)
     predictor, _ = create_objects()
     cap = cv2.VideoCapture(opt.input_video)
+    makedirs(opt.output, exist_ok=True)
     for idx, frame in iter(frame_iter(cap)):
         frame = prepare_image(frame)
         prediction = predictor.predict(frame)
