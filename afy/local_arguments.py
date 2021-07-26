@@ -20,7 +20,7 @@ def get_local_opt():
     )
     parser.add_argument(
         '--output',
-        default='video.mp4',
+        default='video.avi',
         help='filename that will be given to the output video'
     )
 

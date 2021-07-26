@@ -25,7 +25,7 @@ def main():
     fps = 24
     out = cv2.VideoWriter(
         opt.output,
-        cv2.VideoWriter_fourcc(*'MP4V'),
+        cv2.VideoWriter_fourcc(*'XVID'),
         fps,
         predictor.output_size,
     )
@@ -36,6 +36,7 @@ def main():
         out.write(prediction)
         ret, frame = cap.read()
     cap.release()
+    out.release()
 
 if __name__ == "__main__":
     main()
