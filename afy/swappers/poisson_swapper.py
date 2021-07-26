@@ -1,6 +1,5 @@
 '''Obtained from: https://github.com/wuhuikai/FaceSwap/blob/master/face_swap.py'''
 from dataclasses import dataclass
-import logging
 
 import cv2
 import numpy as np
@@ -11,8 +10,8 @@ from afy.swappers import Swapper
 from afy.swappers.eds_swapper import get_im_blur
 
 clip = lambda arr, limit: np.clip(arr, 0, limit)
-clip_width = lambda arr, img: clip(arr, im.shape[1] - 1)
-clip_height = lambda arr, img: clip(arr, im.shape[0] - 1)
+clip_width = lambda arr, img: clip(arr, img.shape[1] - 1)
+clip_height = lambda arr, img: clip(arr, img.shape[0] - 1)
 
 ## 3D Transform
 def bilinear_interpolate(img, coords: np.ndarray):
@@ -128,9 +127,9 @@ def transformation_from_points(points1, points2):
                                 (c2.T - np.dot(s2 / s1 * R, c1.T))[:, np.newaxis]]),
                       np.array([[0., 0., 1.]])])
 
-def warp_image_2d(im, M, dshape):
-    output_im = np.zeros(dshape, dtype=im.dtype)
-    cv2.warpAffine(im,
+def warp_image_2d(img, M, dshape):
+    output_im = np.zeros(dshape, dtype=img.dtype)
+    cv2.warpAffine(img,
                    M[:2],
                    (dshape[1], dshape[0]),
                    dst=output_im,
@@ -163,15 +162,15 @@ def get_output(mask, warped_src_face, dst_face, dst_shape, dst_img):
 
     return dst_img_cp
 
-def parse_data(im, points, r=10):
-    im_w, im_h = im.shape[:2]
+def parse_data(img, points, r=10):
+    im_w, im_h = img.shape[:2]
     left, top = np.min(points, 0)
     right, bottom = np.max(points, 0)
 
     x, y = max(0, left - r), max(0, top - r)
     w, h = min(right + r, im_h) - x, min(bottom + r, im_w) - y
 
-    return points - np.asarray([[x, y]]), (x, y, w, h), im[y:y + h, x:x + w]
+    return points - np.asarray([[x, y]]), (x, y, w, h), img[y:y + h, x:x + w]
 
 @dataclass
 class PoissonSwapper(Swapper):
