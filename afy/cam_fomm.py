@@ -66,14 +66,6 @@ def change_avatar(predictor, new_avatar):
     avatar = new_avatar
     predictor.set_source_image(avatar)
 
-def draw_rect(img, rw=0.6, rh=0.8, color=(255, 0, 0), thickness=2):
-    h, w = img.shape[:2]
-    l = w * (1 - rw) // 2
-    r = w - l
-    u = h * (1 - rh) // 2
-    d = h - u
-    img = cv2.rectangle(img, (int(l), int(u)), (int(r), int(d)), color, thickness)
-
 def kp_to_pixels(arr):
     '''Convert normalized landmark locations to screen pixels'''
     return ((arr + 1) * 127).astype(np.int32)
@@ -101,14 +93,10 @@ def print_help():
     info('\n\n')
 
 
-def draw_fps(frame, fps, timing, x0=10, y0=20, ystep=30, fontsz=0.5, color=(255, 255, 255)):
+def draw_fps(frame, fps, timing, x0=10, y0=20, ystep=30, fontsz=0.5, color=(255, 0, 0)):
     frame = frame.copy()
     cv2.putText(frame, f"FPS: {fps:.1f}", (x0, y0 + ystep * 0), 0, fontsz * IMG_SIZE / 256, color, 1)
-    cv2.putText(frame, f"Model time (ms): {timing['predict']:.1f}", (x0, y0 + ystep * 1), 0, fontsz * IMG_SIZE / 256, color, 1)
-    cv2.putText(frame, f"Preproc time (ms): {timing['preproc']:.1f}", (x0, y0 + ystep * 2), 0, fontsz * IMG_SIZE / 256, color, 1)
-    cv2.putText(frame, f"Postproc time (ms): {timing['postproc']:.1f}", (x0, y0 + ystep * 3), 0, fontsz * IMG_SIZE / 256, color, 1)
     return frame
-
 
 def draw_landmark_text(frame, thk=2, fontsz=0.5, color=(0, 0, 255)):
     frame = frame.copy()
@@ -218,7 +206,6 @@ if __name__ == "__main__":
     cur_ava = 0
     avatar = None
     change_avatar(predictor, avatars[cur_ava])
-    passthrough = False
 
     cv2.namedWindow('cam', cv2.WINDOW_GUI_NORMAL)
     cv2.moveWindow('cam', 100, 250)
@@ -229,17 +216,10 @@ if __name__ == "__main__":
     frame_offset_x = 0
     frame_offset_y = 0
 
-    overlay_alpha = 0.0
-    preview_flip = False
-    output_flip = False
-    find_keyframe = False
-    is_calibrated = True
-
-    show_landmarks = False
-
     fps_hist = []
+    output_fps = []
     fps = 0
-    show_fps = False
+    show_fps = True
 
     print_help()
 
@@ -253,8 +233,6 @@ if __name__ == "__main__":
                 'postproc': 0
             }
 
-            green_overlay = False
-
             tt.tic()
 
             ret, frame = cap.read()
@@ -264,22 +242,11 @@ if __name__ == "__main__":
 
             frame = resize(frame, (IMG_SIZE, IMG_SIZE))
 
-            if find_keyframe:
-                if is_new_frame_better(frame, predictor):
-                    log("Taking new frame!")
-                    green_overlay = True
-                    predictor.reset_frames()
-
             timing['preproc'] = tt.toc()
 
-            if passthrough:
-                out = frame
-            elif is_calibrated:
-                tt.tic()
-                out = predictor.predict(frame)
-                timing['predict'] = tt.toc()
-            else:
-                out = None
+            tt.tic()
+            out = predictor.predict(frame)
+            timing['predict'] = tt.toc()
 
             tt.tic()
 
@@ -287,7 +254,7 @@ if __name__ == "__main__":
 
             if cv2.getWindowProperty('cam', cv2.WND_PROP_VISIBLE) < 1.0:
                 break
-            elif is_calibrated and cv2.getWindowProperty('avatarify', cv2.WND_PROP_VISIBLE) < 1.0:
+            elif cv2.getWindowProperty('avatarify', cv2.WND_PROP_VISIBLE) < 1.0:
                 break
 
             if key == 27: # ESC
@@ -296,13 +263,11 @@ if __name__ == "__main__":
                 cur_ava += 1
                 if cur_ava >= len(avatars):
                     cur_ava = 0
-                passthrough = False
                 change_avatar(predictor, avatars[cur_ava])
             elif key == ord('a'):
                 cur_ava -= 1
                 if cur_ava < 0:
                     cur_ava = len(avatars) - 1
-                passthrough = False
                 change_avatar(predictor, avatars[cur_ava])
             elif key == ord('w'):
                 frame_proportion -= 0.05
@@ -332,30 +297,10 @@ if __name__ == "__main__":
                 frame_proportion = 0.9
             elif key == ord('x'):
                 predictor.reset_frames()
-
-                if not is_calibrated:
-                    cv2.namedWindow('avatarify', cv2.WINDOW_GUI_NORMAL)
-                    cv2.moveWindow('avatarify', 600, 250)
-
-                is_calibrated = True
-                show_landmarks = False
-            elif key == ord('z'):
-                overlay_alpha = max(overlay_alpha - 0.1, 0.0)
-            elif key == ord('c'):
-                overlay_alpha = min(overlay_alpha + 0.1, 1.0)
-            elif key == ord('r'):
-                preview_flip = not preview_flip
-            elif key == ord('t'):
-                output_flip = not output_flip
-            elif key == ord('f'):
-                find_keyframe = not find_keyframe
-            elif key == ord('o'):
-                show_landmarks = not show_landmarks
             elif key == ord('q'):
                 try:
                     log('Loading StyleGAN avatar...')
                     avatar = load_stylegan_avatar()
-                    passthrough = False
                     change_avatar(predictor, avatar)
                 except:
                     log('Failed to load StyleGAN avatar')
@@ -363,7 +308,6 @@ if __name__ == "__main__":
                 try:
                     log('Reloading avatars...')
                     avatars, avatar_names = load_images(opt)
-                    passthrough = False
                     log("Images reloaded")
                 except:
                     log('Image reload failed')
@@ -371,59 +315,22 @@ if __name__ == "__main__":
                 show_fps = not show_fps
             elif 48 < key < 58:
                 cur_ava = min(key - 49, len(avatars) - 1)
-                passthrough = False
                 change_avatar(predictor, avatars[cur_ava])
-            elif key == 48:
-                passthrough = not passthrough
             elif key != -1:
                 log(key)
 
-            if overlay_alpha > 0:
-                preview_frame = cv2.addWeighted( avatar, overlay_alpha, frame, 1.0 - overlay_alpha, 0.0)
-            else:
-                preview_frame = frame.copy()
-
-            if show_landmarks:
-                # Dim the background to make it easier to see the landmarks
-                preview_frame = cv2.convertScaleAbs(preview_frame, alpha=0.5, beta=0.0)
-
-                draw_face_landmarks(preview_frame, avatar_kp, (200, 20, 10))
-                frame_kp = predictor.get_frame_kp(frame)
-                draw_face_landmarks(preview_frame, frame_kp)
-
-            if preview_flip:
-                preview_frame = cv2.flip(preview_frame, 1)
-
-            if green_overlay:
-                green_alpha = 0.8
-                overlay = preview_frame.copy()
-                overlay[:] = (0, 255, 0)
-                preview_frame = cv2.addWeighted( preview_frame, green_alpha, overlay, 1.0 - green_alpha, 0.0)
+            preview_frame = frame.copy()
 
             timing['postproc'] = tt.toc()
 
-            if find_keyframe:
-                preview_frame = cv2.putText(preview_frame, display_string, (10, 220), 0, 0.5 * IMG_SIZE / 256, (255, 255, 255), 1)
-
             if show_fps:
                 preview_frame = draw_fps(preview_frame, fps, timing)
-
-            if not is_calibrated:
-                preview_frame = draw_calib_text(preview_frame)
-            elif show_landmarks:
-                preview_frame = draw_landmark_text(preview_frame)
-
-            if not opt.hide_rect:
-                draw_rect(preview_frame)
 
             cv2.imshow('cam', preview_frame)
 
             if out is not None:
                 if not opt.no_pad:
                     out = pad_img(out, stream_img_size)
-
-                if output_flip:
-                    out = cv2.flip(out, 1)
 
                 if enable_vcam:
                     out = resize(out, stream_img_size)
@@ -434,6 +341,7 @@ if __name__ == "__main__":
             fps_hist.append(tt.toc(total=True))
             if len(fps_hist) == 10:
                 fps = 10 / (sum(fps_hist) / 1000)
+                output_fps.append(fps)
                 fps_hist = []
     except KeyboardInterrupt:
         log("main: user interrupt")
@@ -448,3 +356,4 @@ if __name__ == "__main__":
         predictor.stop()
 
     log("main: exit")
+    log(output_fps, min(output_fps), max(output_fps))
