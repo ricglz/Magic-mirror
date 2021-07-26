@@ -167,6 +167,7 @@ if __name__ == "__main__":
         'checkpoint_path': opt.checkpoint,
         'config_path': opt.config,
         'swap_face': opt.swap_face,
+        'swapper': opt.swapper,
         'verbose': opt.verbose,
     }
     if opt.is_worker:

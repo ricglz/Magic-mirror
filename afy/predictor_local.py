@@ -7,10 +7,8 @@ import numpy as np
 import torch
 
 from afy.custom_typings import BBox, CV2Image
-from afy.face_swap import Faceswap
-from afy.image_logger import ImageLogger
+from afy.face_swap import Faceswap, SwapMethod
 from afy.predictor import Predictor
-from afy.utils import Logger
 
 from articulated.animate import get_animation_region_params
 from articulated.demo import load_checkpoints
@@ -54,6 +52,7 @@ class PredictorLocal(Predictor):
     def __init__(
         self,
         swap_face: bool,
+        swapper: str,
         verbose: bool,
         config_path: str,
         checkpoint_path: str,
@@ -67,7 +66,8 @@ class PredictorLocal(Predictor):
             self.aligner = FaceAlignment(
                 LandmarksType._2D, device=self.device, face_detector='blazeface',
             )
-            self.face_swapper = Faceswap(self.aligner)
+            swap_method = SwapMethod.parse_str(swapper)
+            self.face_swapper = Faceswap(self.aligner, swap_method)
 
     @property
     def generator(self):

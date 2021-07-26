@@ -17,6 +17,15 @@ class SwapMethod(IntEnum):
     TRIANGULATION = 1
     POISSON = 2
 
+    @staticmethod
+    def parse_str(value: str):
+        '''Parses a string value to a SwapMethod enum'''
+        if value == 'eds':
+            return SwapMethod.EDS
+        if value == 'triangulation':
+            return SwapMethod.TRIANGULATION
+        return SwapMethod.POISSON
+
 class Faceswap:
     '''Face swap function'''
     available_swappers = [EDSSwapper, TriangulationSwapper, PoissonSwapper]
