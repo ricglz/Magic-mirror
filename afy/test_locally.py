@@ -32,7 +32,7 @@ def main():
     predictor, _ = create_objects()
     cap = cv2.VideoCapture(opt.input_video)
     makedirs(opt.output, exist_ok=True)
-    for idx, frame in iter(frame_iter(cap)):
+    for idx, frame in enumerate(frame_iter(cap)):
         frame = prepare_image(frame)
         prediction = predictor.predict(frame)
         cv2.imwrite(f'{opt.output}/{idx:08}.jpg', prediction)
