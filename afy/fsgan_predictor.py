@@ -14,14 +14,12 @@ from afy.predictor import Predictor
 from afy.swappers.constants import EYES_BROWS_POINTS, MOUTH_POINTS
 from afy.utils import np_to_hash
 
-# from fsgan.models.hopenet import Hopenet
 from fsgan.data import landmark_transforms
 from fsgan.utils.estimate_pose import rigid_transform_3D
 from fsgan.utils.heatmap import LandmarkHeatmap
 from fsgan.utils.obj_factory import obj_factory
 
 BLEND_MODEL_PATH = 'weights/ijbc_msrunet_256_2_0_blending_v1.pth'
-POSE_MODEL_PATH = 'weights/hopenet_robust_alpha1.pth'
 REENACTMENT_MODEL_PATH = 'weights/ijbc_msrunet_256_2_0_reenactment_v1.pth'
 
 REENACTMENT_ARCH = \
@@ -117,7 +115,6 @@ class FSGANPredictor(Predictor):
         self.landmarks2heatmaps = LandmarkHeatmap().to(self.device)
         self.gen_r = self._load_model(REENACTMENT_MODEL_PATH, REENACTMENT_ARCH)
         self.gen_b = self._load_model(BLEND_MODEL_PATH)
-        # self.gen_p = self._load_hopenet(POSE_MODEL_PATH)
         self.img_transforms = img_transforms(PIL_TRANSFORMS, TENSOR_TRANSFORMS)
 
     def _load_model(self, checkpoint_path: str, arch=None):
@@ -127,11 +124,6 @@ class FSGANPredictor(Predictor):
             arch = checkpoint['arch']
         model: Module = obj_factory(arch).to(self.device)
         return load_state_and_eval(model, checkpoint)
-
-    # def _load_hopenet(self, checkpoint_path: str):
-    #     model = Hopenet().to(self.device)
-    #     checkpoint: dict = torch.load(checkpoint_path)
-    #     return load_state_and_eval(model, checkpoint)
 
     @torch.no_grad()
     def _get_frame_features(self, frame: CV2Image):
