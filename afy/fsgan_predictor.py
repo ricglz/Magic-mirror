@@ -144,7 +144,7 @@ class FSGANPredictor(Predictor):
 
     def _set_source_image(self, source_image: CV2Image):
         self.logger('Set source image')
-        self.target = self._get_frame_features(source_image)
+        self.target = self._get_frame_features(source_image, driving=True)
 
     @torch.no_grad()
     def _get_out_pts(self, source: FrameFeatures) -> np.ndarray:
