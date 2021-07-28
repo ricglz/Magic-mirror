@@ -27,9 +27,6 @@ REENACTMENT_ARCH = \
 
 PIL_TRANSFORMS = ('landmark_transforms.Resize(256)',
                   'landmark_transforms.Pyramids(2)')
-PIL_TRANSFORMS_2 = ('landmark_transforms.Resize(256)',
-                    'landmark_transforms.Pyramids(2)',
-                    'landmark_transforms.LandmarksToHeatmaps')
 TENSOR_TRANSFORMS = ('landmark_transforms.ToTensor()',
                      'transforms.Normalize(mean=[0.5,0.5,0.5],std=[0.5,0.5,0.5])')
 
@@ -44,7 +41,7 @@ def load_state_and_eval(model: Module, checkpoint: dict):
     return model
 
 @torch.no_grad()
-def get_img_transforms(pil_transforms: Tuple[str], tensor_transforms: Tuple[str]):
+def img_transforms(pil_transforms: Tuple[str], tensor_transforms: Tuple[str]):
     '''Create img_transforms based on pil and tensor transforms'''
     pil_transforms_arr = obj_factory(pil_transforms)
     tensor_transforms_arr = obj_factory(tensor_transforms)
@@ -118,8 +115,7 @@ class FSGANPredictor(Predictor):
         self.landmarks2heatmaps = LandmarkHeatmap().to(self.device)
         self.gen_r = self._load_model(REENACTMENT_MODEL_PATH, REENACTMENT_ARCH)
         self.gen_b = self._load_model(BLEND_MODEL_PATH)
-        self.img_transforms = get_img_transforms(PIL_TRANSFORMS, TENSOR_TRANSFORMS)
-        self.img_transforms_2 = get_img_transforms(PIL_TRANSFORMS_2, TENSOR_TRANSFORMS)
+        self.img_transforms = img_transforms(PIL_TRANSFORMS, TENSOR_TRANSFORMS)
 
     def _load_model(self, checkpoint_path: str, arch=None):
         checkpoint: dict = torch.load(checkpoint_path)
@@ -130,25 +126,24 @@ class FSGANPredictor(Predictor):
         return load_state_and_eval(model, checkpoint)
 
     @torch.no_grad()
-    def _get_frame_features(self, frame: CV2Image, driving=False):
-        self.logger('Get frame features')
+    def _get_frame_features(self, frame: CV2Image):
+        self.logger('get frame features')
         frame_hash = np_to_hash(frame)
         if frame_hash in self.cached_frame_features:
             return self.cached_frame_features[frame_hash]
-        img_transforms = self.img_transforms_2 if driving else self.img_transforms
         frame_features = FrameFeatures(
-            frame, self.aligner_2d, self.aligner_3d, img_transforms
+            frame, self.aligner_2d, self.aligner_3d, self.img_transforms
         )
         self.cached_frame_features[frame_hash] = frame_features
         return frame_features
 
     def _set_source_image(self, source_image: CV2Image):
         self.logger('Set source image')
-        self.target = self._get_frame_features(source_image, driving=True)
+        self.target = self._get_frame_features(source_image)
 
     @torch.no_grad()
     def _get_out_pts(self, source: FrameFeatures) -> np.ndarray:
-        self.logger('Get out pts')
+        self.logger('get out pts')
         R, t = rigid_transform_3D(
             self.target.landmarks_3d[0].numpy(), source.landmarks_3d[0].numpy()
         )
@@ -160,7 +155,7 @@ class FSGANPredictor(Predictor):
 
     @torch.no_grad()
     def _create_heatmap_pyramids(self, transformed_landmarks):
-        self.logger('Create heatmap pyramids')
+        self.logger('create heatmap pyramids')
         transformed_landmarks_tensor = torch.from_numpy(transformed_landmarks).unsqueeze(0).to(self.device)
         transformed_hm_tensor = self.landmarks2heatmaps(transformed_landmarks_tensor)
         interpolation = F.interpolate(
@@ -172,25 +167,30 @@ class FSGANPredictor(Predictor):
         return [transformed_hm_tensor, interpolation]
 
     @torch.no_grad()
-    def _face_reenactment(self, source: FrameFeatures):
-        self.logger('Face reenactment')
-        input_tensor = []
-        for idx, source_tensor in enumerate(source.tensor):
-            landmarks = self.target.landmarks[idx].to(self.device)
-            source_tensor = source_tensor.to(self.device)
-            input_tensor.append(torch.cat((source_tensor, landmarks), dim=1))
-        return self.gen_r(input_tensor)
+    def _face_reenactment(self, source: FrameFeatures, transformed_hm_tensor_pyd):
+        self.logger('face reenactment')
+        reenactment_input_tensor = []
+        for j, _ in enumerate(source.tensor):
+            source.tensor[j] = source.tensor[j].unsqueeze(0).to(self.device)
+            reenactment_input_tensor.append(
+                torch.cat((source.tensor[j], transformed_hm_tensor_pyd[j]), dim=1))
+        return self.gen_r(reenactment_input_tensor)
 
     @torch.no_grad()
     def _predict(self, driving_frame: CV2Image):
         self.logger('Predict')
         source = self._get_frame_features(driving_frame)
         self.image_logger.save_cv2(tensor2bgr(source.tensor[0]))
-        reenactment_img_tensor, reenactment_seg_tensor = self._face_reenactment(source)
+        out_pts = self._get_out_pts(source)
+        transformed_landmarks = get_transformed_landmarks(source, out_pts)
+        transformed_hm_tensor_pyd = self._create_heatmap_pyramids(transformed_landmarks)
+        reenactment_img_tensor, reenactment_seg_tensor = self._face_reenactment(
+            source, transformed_hm_tensor_pyd
+        )
         self.image_logger.save_cv2(tensor2bgr(reenactment_img_tensor))
 
         # Transfer reenactment to original image
-        self.logger('Transfer reenactment')
+        self.logger('transfer reenactment')
         source_orig_tensor = source.tensor[0].to(self.device)
         face_mask_tensor = reenactment_seg_tensor.argmax(1) == 1
         transfer_tensor = transfer_mask(
@@ -198,15 +198,11 @@ class FSGANPredictor(Predictor):
         )
         self.image_logger.save_cv2(tensor2bgr(transfer_tensor))
 
-        # Blend the transfer image with the source image
         self.logger('Blend transfer with source')
-        try:
-            blend_input_tensor = torch.cat(
-                (transfer_tensor, source_orig_tensor, face_mask_tensor.unsqueeze(1).float()), dim=1)
-        except RuntimeError as err:
-            self.logger(err, important=True)
-            self.logger(transfer_tensor.size(),source_orig_tensor.size(), face_mask_tensor.unsqueeze(1).float(), important=True)
+        # Blend the transfer image with the source image
+        blend_input_tensor = torch.cat(
+            (transfer_tensor, source_orig_tensor, face_mask_tensor.unsqueeze(1).float()), dim=1)
         blend_input_tensor_pyd = create_pyramid(blend_input_tensor, len(source.tensor))
-        out_img_tensor = self.gen_b(blend_input_tensor_pyd)
+        blend_tensor = self.gen_b(blend_input_tensor_pyd)
 
-        return tensor2bgr(out_img_tensor)
+        return tensor2bgr(blend_tensor)
