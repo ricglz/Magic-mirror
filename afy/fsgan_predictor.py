@@ -96,11 +96,11 @@ def tensor2bgr(img_tensor):
 def get_transformed_landmarks(source: FrameFeatures, out_pts: np.ndarray):
     '''Transfer mouth points only.'''
     source_landmarks_np = source.landmarks[0].cpu().numpy().copy()
-    mouth_pts = out_pts[MOUTH_POINTS, :2] - \
-                out_pts[MOUTH_POINTS, :2].mean(axis=0) + \
-                source_landmarks_np[MOUTH_POINTS, :].mean(axis=0)
+    mouth_pts = out_pts[POINTS_TO_TRANSFORM, :2] - \
+                out_pts[POINTS_TO_TRANSFORM, :2].mean(axis=0) + \
+                source_landmarks_np[POINTS_TO_TRANSFORM, :].mean(axis=0)
     transformed_landmarks = source_landmarks_np
-    transformed_landmarks[MOUTH_POINTS, :] = mouth_pts
+    transformed_landmarks[POINTS_TO_TRANSFORM, :] = mouth_pts
     return transformed_landmarks
 
 class FSGANPredictor(Predictor):
