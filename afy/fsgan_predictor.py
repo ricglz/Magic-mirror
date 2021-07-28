@@ -27,7 +27,9 @@ REENACTMENT_ARCH = \
 
 PIL_TRANSFORMS = ('landmark_transforms.Resize(256)',
                   'landmark_transforms.Pyramids(2)')
-PIL_TRANSFORMS_2 = PIL_TRANSFORMS + ('landmark_transforms.LandmarksToHeatmaps')
+PIL_TRANSFORMS_2 = ('landmark_transforms.Resize(256)',
+                    'landmark_transforms.Pyramids(2)',
+                    'landmark_transforms.LandmarksToHeatmaps')
 TENSOR_TRANSFORMS = ('landmark_transforms.ToTensor()',
                      'transforms.Normalize(mean=[0.5,0.5,0.5],std=[0.5,0.5,0.5])')
 
