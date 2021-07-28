@@ -131,7 +131,7 @@ class FSGANPredictor(Predictor):
 
     @torch.no_grad()
     def _get_frame_features(self, frame: CV2Image, driving=False):
-        self.logger('get frame features')
+        self.logger('Get frame features')
         frame_hash = np_to_hash(frame)
         if frame_hash in self.cached_frame_features:
             return self.cached_frame_features[frame_hash]
@@ -148,7 +148,7 @@ class FSGANPredictor(Predictor):
 
     @torch.no_grad()
     def _get_out_pts(self, source: FrameFeatures) -> np.ndarray:
-        self.logger('get out pts')
+        self.logger('Get out pts')
         R, t = rigid_transform_3D(
             self.target.landmarks_3d[0].numpy(), source.landmarks_3d[0].numpy()
         )
@@ -160,7 +160,7 @@ class FSGANPredictor(Predictor):
 
     @torch.no_grad()
     def _create_heatmap_pyramids(self, transformed_landmarks):
-        self.logger('create heatmap pyramids')
+        self.logger('Create heatmap pyramids')
         transformed_landmarks_tensor = torch.from_numpy(transformed_landmarks).unsqueeze(0).to(self.device)
         transformed_hm_tensor = self.landmarks2heatmaps(transformed_landmarks_tensor)
         interpolation = F.interpolate(
@@ -172,27 +172,38 @@ class FSGANPredictor(Predictor):
         return [transformed_hm_tensor, interpolation]
 
     @torch.no_grad()
-    def _face_reenactment(self, source: FrameFeatures, transformed_hm_tensor_pyd):
-        self.logger('face reenactment')
-        reenactment_input_tensor = []
-        for j, _ in enumerate(source.tensor):
-            source.tensor[j] = source.tensor[j].unsqueeze(0).to(self.device)
-            reenactment_input_tensor.append(
-                torch.cat((source.tensor[j], transformed_hm_tensor_pyd[j]), dim=1))
-        return self.gen_r(reenactment_input_tensor)
-
-    @torch.no_grad()
-    def _predict(self, driving_frame: CV2Image):
-        self.logger('Predict')
-        source = self._get_frame_features(driving_frame)
-        self.image_logger.save_cv2(tensor2bgr(source.tensor[0]))
-
+    def _face_reenactment(self, source: FrameFeatures):
+        self.logger('Face reenactment')
         input_tensor = []
         for idx, source_tensor in enumerate(source.tensor):
             landmarks = self.target.landmarks[idx].to(self.device)
             source_tensor = source_tensor.to(self.device)
             elem = torch.cat((source_tensor, landmarks), dim=0).unsqueeze(0).to(self.device)
             input_tensor.append(elem)
-        out_img_tensor, _ = self.gen_r(input_tensor)
+        return self.gen_r(input_tensor)
+
+    @torch.no_grad()
+    def _predict(self, driving_frame: CV2Image):
+        self.logger('Predict')
+        source = self._get_frame_features(driving_frame)
+        self.image_logger.save_cv2(tensor2bgr(source.tensor[0]))
+        reenactment_img_tensor, reenactment_seg_tensor = self._face_reenactment(source)
+        self.image_logger.save_cv2(tensor2bgr(reenactment_img_tensor))
+
+        # Transfer reenactment to original image
+        self.logger('Transfer reenactment')
+        source_orig_tensor = source.tensor[0].to(self.device)
+        face_mask_tensor = reenactment_seg_tensor.argmax(1) == 1
+        transfer_tensor = transfer_mask(
+            reenactment_img_tensor, source_orig_tensor, face_mask_tensor
+        )
+        self.image_logger.save_cv2(tensor2bgr(transfer_tensor))
+
+        # Blend the transfer image with the source image
+        self.logger('Blend transfer with source')
+        blend_input_tensor = torch.cat(
+            (transfer_tensor, source_orig_tensor, face_mask_tensor.unsqueeze(1).float()), dim=1)
+        blend_input_tensor_pyd = create_pyramid(blend_input_tensor, len(source.tensor))
+        out_img_tensor = self.gen_b(blend_input_tensor_pyd)
 
         return tensor2bgr(out_img_tensor)
