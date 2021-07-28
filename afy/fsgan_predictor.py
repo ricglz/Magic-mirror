@@ -193,10 +193,10 @@ class FSGANPredictor(Predictor):
             source_tensor = source_tensor.to(self.device)
             try:
                 elem = torch.cat((source_tensor, landmarks), dim=0).unsqueeze(0).to(self.device)
+                input_tensor.append(elem)
             except RuntimeError as err:
                 self.logger(err, important=True)
                 self.logger(landmarks.device, source_tensor.device, important=True)
-            input_tensor.append(elem)
         out_img_tensor, _ = self.gen_r(input_tensor)
 
         return tensor2bgr(out_img_tensor)
