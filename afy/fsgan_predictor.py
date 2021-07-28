@@ -178,8 +178,7 @@ class FSGANPredictor(Predictor):
         for idx, source_tensor in enumerate(source.tensor):
             landmarks = self.target.landmarks[idx].to(self.device)
             source_tensor = source_tensor.to(self.device)
-            elem = torch.cat((source_tensor, landmarks), dim=0).unsqueeze(0).to(self.device)
-            input_tensor.append(elem)
+            input_tensor.append(torch.cat((source_tensor, landmarks), dim=1))
         return self.gen_r(input_tensor)
 
     @torch.no_grad()
@@ -201,8 +200,12 @@ class FSGANPredictor(Predictor):
 
         # Blend the transfer image with the source image
         self.logger('Blend transfer with source')
-        blend_input_tensor = torch.cat(
-            (transfer_tensor, source_orig_tensor, face_mask_tensor.unsqueeze(1).float()), dim=1)
+        try:
+            blend_input_tensor = torch.cat(
+                (transfer_tensor, source_orig_tensor, face_mask_tensor.unsqueeze(1).float()), dim=1)
+        except RuntimeError as err:
+            self.logger(err, important=True)
+            self.logger(transfer_tensor.size(),source_orig_tensor.size(), face_mask_tensor.unsqueeze(1).float(), important=True)
         blend_input_tensor_pyd = create_pyramid(blend_input_tensor, len(source.tensor))
         out_img_tensor = self.gen_b(blend_input_tensor_pyd)
 
