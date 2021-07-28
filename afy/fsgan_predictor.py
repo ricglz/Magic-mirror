@@ -27,6 +27,7 @@ REENACTMENT_ARCH = \
 
 PIL_TRANSFORMS = ('landmark_transforms.Resize(256)',
                   'landmark_transforms.Pyramids(2)')
+PIL_TRANSFORMS_2 = PIL_TRANSFORMS + ('landmark_transforms.LandmarksToHeatmaps')
 TENSOR_TRANSFORMS = ('landmark_transforms.ToTensor()',
                      'transforms.Normalize(mean=[0.5,0.5,0.5],std=[0.5,0.5,0.5])')
 
@@ -41,7 +42,7 @@ def load_state_and_eval(model: Module, checkpoint: dict):
     return model
 
 @torch.no_grad()
-def img_transforms(pil_transforms: Tuple[str], tensor_transforms: Tuple[str]):
+def get_img_transforms(pil_transforms: Tuple[str], tensor_transforms: Tuple[str]):
     '''Create img_transforms based on pil and tensor transforms'''
     pil_transforms_arr = obj_factory(pil_transforms)
     tensor_transforms_arr = obj_factory(tensor_transforms)
@@ -115,7 +116,8 @@ class FSGANPredictor(Predictor):
         self.landmarks2heatmaps = LandmarkHeatmap().to(self.device)
         self.gen_r = self._load_model(REENACTMENT_MODEL_PATH, REENACTMENT_ARCH)
         self.gen_b = self._load_model(BLEND_MODEL_PATH)
-        self.img_transforms = img_transforms(PIL_TRANSFORMS, TENSOR_TRANSFORMS)
+        self.img_transforms = get_img_transforms(PIL_TRANSFORMS, TENSOR_TRANSFORMS)
+        self.img_transforms_2 = get_img_transforms(PIL_TRANSFORMS, TENSOR_TRANSFORMS)
 
     def _load_model(self, checkpoint_path: str, arch=None):
         checkpoint: dict = torch.load(checkpoint_path)
@@ -126,13 +128,14 @@ class FSGANPredictor(Predictor):
         return load_state_and_eval(model, checkpoint)
 
     @torch.no_grad()
-    def _get_frame_features(self, frame: CV2Image):
+    def _get_frame_features(self, frame: CV2Image, driving=False):
         self.logger('get frame features')
         frame_hash = np_to_hash(frame)
         if frame_hash in self.cached_frame_features:
             return self.cached_frame_features[frame_hash]
+        img_transforms = self.img_transforms_2 if driving else self.img_transforms
         frame_features = FrameFeatures(
-            frame, self.aligner_2d, self.aligner_3d, self.img_transforms
+            frame, self.aligner_2d, self.aligner_3d, img_transforms
         )
         self.cached_frame_features[frame_hash] = frame_features
         return frame_features
@@ -181,28 +184,12 @@ class FSGANPredictor(Predictor):
         self.logger('Predict')
         source = self._get_frame_features(driving_frame)
         self.image_logger.save_cv2(tensor2bgr(source.tensor[0]))
-        out_pts = self._get_out_pts(source)
-        transformed_landmarks = get_transformed_landmarks(source, out_pts)
-        transformed_hm_tensor_pyd = self._create_heatmap_pyramids(transformed_landmarks)
-        reenactment_img_tensor, reenactment_seg_tensor = self._face_reenactment(
-            source, transformed_hm_tensor_pyd
-        )
-        self.image_logger.save_cv2(tensor2bgr(reenactment_img_tensor))
 
-        # Transfer reenactment to original image
-        self.logger('transfer reenactment')
-        source_orig_tensor = source.tensor[0].to(self.device)
-        face_mask_tensor = reenactment_seg_tensor.argmax(1) == 1
-        transfer_tensor = transfer_mask(
-            reenactment_img_tensor, source_orig_tensor, face_mask_tensor
-        )
-        self.image_logger.save_cv2(tensor2bgr(transfer_tensor))
+        input_tensor = []
+        for idx, source_tensor in enumerate(source.tensor):
+            landmarks = self.target.landmarks[idx].to(self.device)
+            elem = torch.cat((source_tensor, landmarks), dim=0).unsqueeze(0).to(self.device)
+            input_tensor.append(elem)
+        out_img_tensor, _ = self.gen_r(input_tensor)
 
-        self.logger('Blend transfer with source')
-        # Blend the transfer image with the source image
-        blend_input_tensor = torch.cat(
-            (transfer_tensor, source_orig_tensor, face_mask_tensor.unsqueeze(1).float()), dim=1)
-        blend_input_tensor_pyd = create_pyramid(blend_input_tensor, len(source.tensor))
-        blend_tensor = self.gen_b(blend_input_tensor_pyd)
-
-        return tensor2bgr(blend_tensor)
+        return tensor2bgr(out_img_tensor)
