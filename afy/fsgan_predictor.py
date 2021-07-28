@@ -119,7 +119,7 @@ class FSGANPredictor(Predictor):
         self.gen_r = self._load_model(REENACTMENT_MODEL_PATH, REENACTMENT_ARCH)
         self.gen_b = self._load_model(BLEND_MODEL_PATH)
         self.img_transforms = get_img_transforms(PIL_TRANSFORMS, TENSOR_TRANSFORMS)
-        self.img_transforms_2 = get_img_transforms(PIL_TRANSFORMS, TENSOR_TRANSFORMS)
+        self.img_transforms_2 = get_img_transforms(PIL_TRANSFORMS_2, TENSOR_TRANSFORMS)
 
     def _load_model(self, checkpoint_path: str, arch=None):
         checkpoint: dict = torch.load(checkpoint_path)
