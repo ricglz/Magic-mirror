@@ -159,7 +159,8 @@ class FSGANPredictor(Predictor):
             transformed_hm_tensor,
             scale_factor=0.5,
             mode='bilinear',
-            align_corners=False
+            align_corners=False,
+            recompute_scale_factor=False
         )
         return [transformed_hm_tensor, interpolation]
 
