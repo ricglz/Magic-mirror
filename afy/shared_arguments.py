@@ -30,4 +30,11 @@ def add_predictor_arguments(parser: ArgumentParser):
         action="store_true",
         help="Whether to use fsgan or not"
     )
+    parser.add_argument(
+        "--resolution",
+        type=int,
+        choices=[256, 512],
+        default=256,
+        help="Resolution of the output img"
+    )
     return parser

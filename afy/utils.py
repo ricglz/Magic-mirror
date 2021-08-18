@@ -17,6 +17,7 @@ def get_predictor(opt: Union[Namespace, Dict], fsgan=False):
         predictor_args = {
             'checkpoint_path': opt.checkpoint,
             'config_path': opt.config,
+            'resolution': opt.resolution,
             'swap_face': opt.swap_face,
             'swapper': opt.swapper,
             'verbose': opt.verbose,

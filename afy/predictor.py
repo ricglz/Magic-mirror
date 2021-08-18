@@ -11,14 +11,21 @@ from afy.utils import Logger
 
 class Predictor(ABC):
     '''Swapper abstract class'''
-    output_size = (512, 512)
 
-    def __init__(self, swap_face: bool, cls_name: str, verbose: bool, **_):
+    def __init__(
+        self,
+        cls_name: str,
+        swap_face: bool,
+        verbose: bool,
+        resolution: int,
+        **_,
+    ):
         self.swap_face = swap_face
         self.logger = Logger(f'./var/log/{cls_name}.log', verbose)
         self.image_logger = ImageLogger(f'./imgs/{cls_name}', verbose)
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.magic_mirror = MagicMirror()
+        self.output_size = (resolution, resolution)
 
     @classmethod
     def __subclasshook__(cls, subclass):

@@ -108,8 +108,8 @@ class FSGANPredictor(Predictor):
     cached_frame_features: Dict[str, FrameFeatures] = {}
     target: Optional[FrameFeatures] = None
 
-    def __init__(self, swap_face: bool, verbose: bool, **_):
-        super().__init__(swap_face, 'fsgan_predictor', verbose)
+    def __init__(self, **args):
+        super().__init__('fsgan_predictor', **args)
         self.aligner_2d = FaceAlignment(LandmarksType._2D, face_detector='blazeface')
         self.aligner_3d = FaceAlignment(LandmarksType._3D, face_detector='blazeface')
         self.landmarks2heatmaps = LandmarkHeatmap().to(self.device)

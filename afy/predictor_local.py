@@ -51,13 +51,12 @@ class PredictorLocal(Predictor):
 
     def __init__(
         self,
-        swap_face: bool,
         swapper: str,
-        verbose: bool,
         config_path: str,
         checkpoint_path: str,
+        **args,
     ):
-        super().__init__(swap_face, 'predictor_local', verbose)
+        super().__init__('predictor_local', **args)
         self.networks = load_checkpoints(
             config_path, checkpoint_path, self.device == 'cpu'
         )

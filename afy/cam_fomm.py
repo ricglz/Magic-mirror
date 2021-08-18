@@ -156,6 +156,7 @@ if __name__ == "__main__":
         'swap_face': opt.swap_face,
         'swapper': opt.swapper,
         'verbose': opt.verbose,
+        'resolution': opt.resolution,
     }
     if opt.is_worker:
         from afy import predictor_worker
