@@ -23,6 +23,12 @@ def get_local_opt():
         default='output',
         help='filename that will be given to the output video'
     )
+    parser.add_argument(
+        '--desired-avatar',
+        type=int,
+        default=0,
+        help='Desired avatar index to use'
+    )
 
     return parser.parse_args()
 

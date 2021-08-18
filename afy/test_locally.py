@@ -13,7 +13,7 @@ def create_objects():
     '''Create necessary objects for the prediction'''
     predictor = get_predictor(opt, opt.fsgan)
     avatars, _ = load_images(opt)
-    predictor.set_source_image(avatars[0])
+    predictor.set_source_image(avatars[opt.desired_avatar])
     return predictor, avatars
 
 def frame_iter(capture):
