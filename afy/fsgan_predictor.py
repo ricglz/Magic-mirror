@@ -177,18 +177,22 @@ class FSGANPredictor(Predictor):
                 torch.cat((source.tensor[j], transformed_hm_tensor_pyd[j]), dim=1))
         return self.gen_r(reenactment_input_tensor)
 
+    def log_image(self, tensor):
+        if self.verbose:
+            self.image_logger.save_cv2(tensor2bgr(tensor))
+
     @torch.no_grad()
     def _predict(self, driving_frame: CV2Image):
         self.logger('Predict')
         source = self._get_frame_features(driving_frame)
-        self.image_logger.save_cv2(tensor2bgr(source.tensor[0]))
+        self.log_image(source.tensor[0])
         out_pts = self._get_out_pts(source)
         transformed_landmarks = get_transformed_landmarks(source, out_pts)
         transformed_hm_tensor_pyd = self._create_heatmap_pyramids(transformed_landmarks)
         reenactment_img_tensor, reenactment_seg_tensor = self._face_reenactment(
             source, transformed_hm_tensor_pyd
         )
-        self.image_logger.save_cv2(tensor2bgr(reenactment_img_tensor))
+        self.log_image(reenactment_img_tensor)
 
         # Transfer reenactment to original image
         self.logger('transfer reenactment')
@@ -197,7 +201,7 @@ class FSGANPredictor(Predictor):
         transfer_tensor = transfer_mask(
             reenactment_img_tensor, source_orig_tensor, face_mask_tensor
         )
-        self.image_logger.save_cv2(tensor2bgr(transfer_tensor))
+        self.log_image(transfer_tensor)
 
         self.logger('Blend transfer with source')
         # Blend the transfer image with the source image
