@@ -157,6 +157,7 @@ class PredictorLocal(Predictor):
         if self.swap_face:
             self.logger('Faceswap')
             out = self._face_swap(driving_frame, bbox, out)
+            out = out.astype(float) / 255
 
         self.image_logger.save_cv2(out)
 
