@@ -7,6 +7,7 @@ from typing import Union, Dict
 
 import numpy as np
 import cv2
+from PIL import Image
 
 def np_to_hash(array: np.ndarray):
     return str(abs(hash(array.data.tobytes())))
@@ -166,5 +167,10 @@ def pad_img(img, target_size, default_pad=0):
     out = np.pad(img, [[pad_h, pad_h], [pad_w, pad_w], [0,0]], 'constant')
     return out
 
-def resize(img, size, version='cv'):
-    return cv2.resize(img, size)
+def resize(img, size):
+    try:
+        return cv2.resize(img, size)
+    except cv2.error:
+        rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        pil_img = Image.fromarray(rgb_img).resize(size)
+        return cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)

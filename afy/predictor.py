@@ -1,13 +1,12 @@
 from abc import ABC, abstractmethod
 
-import cv2
 import numpy as np
 import torch
 
 from afy.custom_typings import CV2Image
 from afy.image_logger import ImageLogger
 from afy.magic_mirror import MagicMirror
-from afy.utils import Logger
+from afy.utils import Logger, resize
 
 class Predictor(ABC):
     '''Swapper abstract class'''
@@ -59,7 +58,7 @@ class Predictor(ABC):
         error_msg = f'Expected out to be np.ndarray, got {out.__class__}'
         assert isinstance(out, np.ndarray), error_msg
 
-        return cv2.resize(out, self.output_size)
+        return resize(out, self.output_size)
 
     def get_frame_kp(self, image):
         pass
