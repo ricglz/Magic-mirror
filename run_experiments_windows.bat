@@ -9,12 +9,12 @@ set VIDEO_6=javier.mp4
 
 call run_experiment_windows.bat %VIDEO_1% with_glasses 0 256
 call run_experiment_windows.bat %VIDEO_1% with_glasses 1 256
-call run_experiment_windows.bat %VIDEO_1% with_glasses 0 512
+:: call run_experiment_windows.bat %VIDEO_1% with_glasses 0 512
 call run_experiment_windows.bat %VIDEO_1% with_glasses 1 512
 
 call run_experiment_windows.bat %VIDEO_2% without_glasses 0 256
 call run_experiment_windows.bat %VIDEO_2% without_glasses 1 256
-call run_experiment_windows.bat %VIDEO_2% without_glasses 0 512
+:: call run_experiment_windows.bat %VIDEO_2% without_glasses 0 512
 call run_experiment_windows.bat %VIDEO_2% without_glasses 1 512
 
 call run_experiment_windows.bat %VIDEO_3% crystal 0 256
