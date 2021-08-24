@@ -51,7 +51,7 @@ def show_videos(
         for window_name, frame in zip(window_names, frames):
             cv2.imshow(window_name, cv2.resize(frame, desired_size))
 
-        if cv2.waitKey(41) == 27:
+        if cv2.waitKey(20) == 27:
             break
 
 def main():
