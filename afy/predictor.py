@@ -52,6 +52,7 @@ class Predictor(ABC):
     def predict(self, driving_frame: CV2Image):
         if self.magic_mirror.should_predict():
             out = self._predict(driving_frame)
+            self.logger(out[:, 0, 0])
         else:
             out = driving_frame
 
