@@ -61,9 +61,6 @@ class Predictor(ABC):
 
         out = resize(out, self.output_size)
 
-        if out.dtype is not np.dtype(np.uint8) or out.dtype is not np.dtype('int'):
-            out = (out * 255).astype(int)
-
         return out
 
     def get_frame_kp(self, image):

@@ -78,4 +78,4 @@ class Faceswap:
             return head
 
         out = self.swapper.swap_imgs(head, face, landmarks1, landmarks2)
-        return out / 255
+        return out
