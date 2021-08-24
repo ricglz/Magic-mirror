@@ -59,7 +59,12 @@ class Predictor(ABC):
         error_msg = f'Expected out to be np.ndarray, got {out.__class__}'
         assert isinstance(out, np.ndarray), error_msg
 
-        return resize(out, self.output_size)
+        out = resize(out, self.output_size)
+
+        if out.dtype is not np.dtype(np.uint8) or out.dtype is not np.dtype('int'):
+            out = (out * 255).astype(int)
+
+        return out
 
     def get_frame_kp(self, image):
         pass
