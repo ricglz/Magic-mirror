@@ -5,6 +5,7 @@ cam.yaml
 *.dat
 *.mp4
 *.avi
+videos
 
 __pycache__
 
