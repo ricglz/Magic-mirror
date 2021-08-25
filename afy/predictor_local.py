@@ -107,12 +107,12 @@ class PredictorLocal(Predictor):
         return self.face_swapper.faceswap(source, modified_face, [bbox])
 
     def _get_animation_region_args(self, source_region_params):
-        if self.swap_face:
-            return (
-                self.driving_region_params,
-                source_region_params,
-                source_region_params
-            )
+        # if self.swap_face:
+        #     return (
+        #         self.driving_region_params,
+        #         source_region_params,
+        #         source_region_params
+        #     )
         return (
             source_region_params,
             self.driving_region_params,
@@ -120,12 +120,12 @@ class PredictorLocal(Predictor):
         )
 
     def _generate(self, source, new_region_params, source_region_params):
-        if self.swap_face:
-            return self.generator(
-                self.driving,
-                new_region_params,
-                self.driving_region_params
-            )
+        # if self.swap_face:
+        #     return self.generator(
+        #         self.driving,
+        #         new_region_params,
+        #         self.driving_region_params
+        #     )
         return self.generator(
             source,
             new_region_params,
