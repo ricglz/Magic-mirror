@@ -21,9 +21,9 @@ def get_videos(args: Namespace):
     base_path = path.join('videos', args.individual)
     video_1 = path.join(base_path, 'original.mp4')
     algorithm_filename = f'{args.algorithm}.mp4'
-    resolution_path = path.join(base_path, f'{args.resolution}x{args.resolution}')
-    video_2 = path.join(resolution_path, 'closed_eyes', algorithm_filename)
-    video_3 = path.join(resolution_path, 'opened_eyes', algorithm_filename)
+    # resolution_path = path.join(base_path, f'{args.resolution}x{args.resolution}')
+    video_2 = path.join(base_path, '0', algorithm_filename)
+    video_3 = path.join(base_path, '1', algorithm_filename)
     return video_1, video_2, video_3
 
 def configure_windows():
